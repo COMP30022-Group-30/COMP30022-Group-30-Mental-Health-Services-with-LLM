@@ -15,7 +15,7 @@ A prototype tool that helps people "talk their way" to relevant mental health se
 ## 📁 Directory Structure
 
 ```
-mental-health-chatbot/
+COMP30022-Group-30-Mental-Health-Services-with-LLM/
 ├── backend/               # FastAPI app for LLM orchestration + data search
 │   ├── README.md
 │   └── ...
