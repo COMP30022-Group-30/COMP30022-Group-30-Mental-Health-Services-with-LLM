@@ -1,4 +1,4 @@
-// Keeps app code simple even if TS loses track of vite/client ambient types
+// Keeps app code simple even if TS loses track of vite/client ambient types.
 export type ViteEnv = {
   VITE_AUTH_MOCK?: string;
   VITE_API_BASE_URL?: string;
