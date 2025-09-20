@@ -13,8 +13,8 @@ CREATE TABLE public.cost (
   service_campus_key uuid NOT NULL,
   cost_num integer NOT NULL,
   CONSTRAINT cost_pkey PRIMARY KEY (cost_key),
-  CONSTRAINT cost_cost_num_fkey FOREIGN KEY (cost_num) REFERENCES public.cost_lookup(cost_num),
-  CONSTRAINT cost_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key)
+  CONSTRAINT cost_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key),
+  CONSTRAINT cost_cost_num_fkey FOREIGN KEY (cost_num) REFERENCES public.cost_lookup(cost_num)
 );
 CREATE TABLE public.cost_lookup (
   cost_num integer NOT NULL,
@@ -26,8 +26,8 @@ CREATE TABLE public.delivery_method (
   service_campus_key uuid NOT NULL,
   delivery_method_num integer NOT NULL,
   CONSTRAINT delivery_method_pkey PRIMARY KEY (delivery_method_key),
-  CONSTRAINT delivery_method_delivery_method_num_fkey FOREIGN KEY (delivery_method_num) REFERENCES public.delivery_method_lookup(delivery_method_num),
-  CONSTRAINT delivery_method_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key)
+  CONSTRAINT delivery_method_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key),
+  CONSTRAINT delivery_method_delivery_method_num_fkey FOREIGN KEY (delivery_method_num) REFERENCES public.delivery_method_lookup(delivery_method_num)
 );
 CREATE TABLE public.delivery_method_lookup (
   delivery_method_num integer NOT NULL,
@@ -47,6 +47,14 @@ CREATE TABLE public.level_of_care_lookup (
   level_of_care text NOT NULL,
   CONSTRAINT level_of_care_lookup_pkey PRIMARY KEY (level_of_care_num)
 );
+CREATE TABLE public.messages (
+  id bigint NOT NULL DEFAULT nextval('messages_id_seq'::regclass),
+  session_id text NOT NULL,
+  role text NOT NULL CHECK (role = ANY (ARRAY['user'::text, 'assistant'::text, 'system'::text])),
+  content text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT messages_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.organisation (
   organisation_key uuid NOT NULL DEFAULT gen_random_uuid(),
   organisation_name text NOT NULL UNIQUE,
@@ -64,8 +72,8 @@ CREATE TABLE public.referral_pathway (
   service_campus_key uuid NOT NULL,
   referral_pathway_num integer NOT NULL,
   CONSTRAINT referral_pathway_pkey PRIMARY KEY (referral_pathway_key),
-  CONSTRAINT referral_pathway_referral_pathway_num_fkey FOREIGN KEY (referral_pathway_num) REFERENCES public.referral_pathway_lookup(referral_pathway_num),
-  CONSTRAINT referral_pathway_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key)
+  CONSTRAINT referral_pathway_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key),
+  CONSTRAINT referral_pathway_referral_pathway_num_fkey FOREIGN KEY (referral_pathway_num) REFERENCES public.referral_pathway_lookup(referral_pathway_num)
 );
 CREATE TABLE public.referral_pathway_lookup (
   referral_pathway_num integer NOT NULL,
@@ -103,23 +111,23 @@ CREATE TABLE public.service_campus (
   postcode text,
   eligibility_and_description text,
   CONSTRAINT service_campus_pkey PRIMARY KEY (service_campus_key),
-  CONSTRAINT service_campus_campus_key_fkey FOREIGN KEY (campus_key) REFERENCES public.campus(campus_key),
-  CONSTRAINT service_campus_service_key_fkey FOREIGN KEY (service_key) REFERENCES public.service(service_key)
+  CONSTRAINT service_campus_service_key_fkey FOREIGN KEY (service_key) REFERENCES public.service(service_key),
+  CONSTRAINT service_campus_campus_key_fkey FOREIGN KEY (campus_key) REFERENCES public.campus(campus_key)
 );
 CREATE TABLE public.service_region (
   service_campus_key uuid NOT NULL,
   region_key uuid NOT NULL,
   CONSTRAINT service_region_pkey PRIMARY KEY (service_campus_key, region_key),
-  CONSTRAINT service_region_region_key_fkey FOREIGN KEY (region_key) REFERENCES public.region(region_key),
-  CONSTRAINT service_region_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key)
+  CONSTRAINT service_region_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key),
+  CONSTRAINT service_region_region_key_fkey FOREIGN KEY (region_key) REFERENCES public.region(region_key)
 );
 CREATE TABLE public.service_type (
   service_type_key uuid NOT NULL DEFAULT gen_random_uuid(),
   service_campus_key uuid NOT NULL,
   service_type_num integer,
   CONSTRAINT service_type_pkey PRIMARY KEY (service_type_key),
-  CONSTRAINT service_type_service_type_num_fkey FOREIGN KEY (service_type_num) REFERENCES public.service_type_lookup(service_type_num),
-  CONSTRAINT service_type_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key)
+  CONSTRAINT service_type_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key),
+  CONSTRAINT service_type_service_type_num_fkey FOREIGN KEY (service_type_num) REFERENCES public.service_type_lookup(service_type_num)
 );
 CREATE TABLE public.service_type_lookup (
   service_type_num integer NOT NULL,
@@ -169,8 +177,8 @@ CREATE TABLE public.target_population (
   service_campus_key uuid NOT NULL,
   target_population_num integer,
   CONSTRAINT target_population_pkey PRIMARY KEY (target_population_key),
-  CONSTRAINT target_population_target_population_num_fkey FOREIGN KEY (target_population_num) REFERENCES public.target_population_lookup(target_population_num),
-  CONSTRAINT target_population_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key)
+  CONSTRAINT target_population_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key),
+  CONSTRAINT target_population_target_population_num_fkey FOREIGN KEY (target_population_num) REFERENCES public.target_population_lookup(target_population_num)
 );
 CREATE TABLE public.target_population_lookup (
   target_population_num integer NOT NULL,
@@ -182,8 +190,8 @@ CREATE TABLE public.workforce_type (
   service_campus_key uuid NOT NULL,
   workforce_type_num integer NOT NULL,
   CONSTRAINT workforce_type_pkey PRIMARY KEY (workforce_type_key),
-  CONSTRAINT workforce_type_workforce_type_num_fkey FOREIGN KEY (workforce_type_num) REFERENCES public.workforce_type_lookup(workforce_type_num),
-  CONSTRAINT workforce_type_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key)
+  CONSTRAINT workforce_type_service_campus_key_fkey FOREIGN KEY (service_campus_key) REFERENCES public.service_campus(service_campus_key),
+  CONSTRAINT workforce_type_workforce_type_num_fkey FOREIGN KEY (workforce_type_num) REFERENCES public.workforce_type_lookup(workforce_type_num)
 );
 CREATE TABLE public.workforce_type_lookup (
   workforce_type_num integer NOT NULL,
