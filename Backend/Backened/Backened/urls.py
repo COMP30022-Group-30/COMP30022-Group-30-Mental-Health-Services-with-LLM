@@ -26,4 +26,5 @@ urlpatterns = [
     path('', views.Homepage),
     path('about/', views.about),
     path('chat/', include('chat.urls')),
+    path('login or create account/', include('accounts.urls')),
 ]

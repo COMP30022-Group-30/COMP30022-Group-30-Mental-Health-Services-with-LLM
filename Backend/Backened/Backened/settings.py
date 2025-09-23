@@ -34,8 +34,16 @@ INSTALLED_APPS = [
     # external apps
     'rest_framework',
     'rest_framework.authtoken',
+    # 'allauth',
+    # 'allauth.account',
+    # 'allauth.socialaccount',
+    # 'allauth.socialaccount.providers.google',
+    # 'allauth.socialaccount.providers.facebook',
+    # 'allauth.socialaccount.providers.apple',
     # internal apps
     'chat',
+    'services',
+    'accounts',
     # default apps
     'django.contrib.admin',
     'django.contrib.auth',

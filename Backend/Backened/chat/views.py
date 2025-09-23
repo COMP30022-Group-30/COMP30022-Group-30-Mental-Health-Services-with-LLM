@@ -9,21 +9,13 @@ from .models import ChatSession, Message
 from .serializers import *
 from rest_framework.views import APIView
 
-# Create your views here.
-class ChatSessionList(generics.ListCreateAPIView):
+
+class ChatSessionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for listing, creating, retrieving, updating, and deleting chat sessions.
+    """
     queryset = ChatSession.objects.all()
     serializer_class = ChatSessionSerializer
-    
-
-class ChatSessionDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Simple detail view for individual chat sessions"""
-    queryset = ChatSession.objects.all()
-    serializer_class = ChatSessionSerializer
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
     
 class ChatMessageAPIView(APIView):
     """

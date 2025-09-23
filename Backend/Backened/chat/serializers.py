@@ -18,11 +18,3 @@ class ChatSessionSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'created_at', 'updated_at', 'messages', 'message_count']
         read_only_fields = ['id', 'created_at', 'updated_at', 'message_count']
 
-# class ChatSessionDetailSerializer(serializers.ModelSerializer):
-#     messages = MessageSerializer(many=True, read_only=True, source='message_set')
-
-#     class Meta:
-#         model = ChatSession
-#         fields = ['id', 'title', 'created_at', 'messages']
-
-
