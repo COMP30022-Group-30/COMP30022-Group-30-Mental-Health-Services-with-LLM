@@ -1,0 +1,126 @@
+name: Coding Standards
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standards-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  STRICT_HEADERS: "false"          # flip to "true" later to enforce
+  HEADER_MAX_SCAN_LINES: "50"
+  HEADER_EXTS: "py js ts jsx tsx java c cpp h hpp"
+
+jobs:
+  core-standards:
+    name: Core Standards (headers + no-goto)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Determine changed files (PR or push)
+        id: diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="$(git rev-parse HEAD^)"
+          fi
+          CHANGED=$(git diff --name-only "$BASE_SHA" HEAD || true)
+          {
+            echo "changed<<EOF"
+            echo "$CHANGED"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Changed files:"; echo "$CHANGED"
+
+      - name: Enforce "no goto" (C/C++ only) — hard fail
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < <(echo "${{ steps.diff.outputs.changed }}" | grep -E '\.(c|cpp|h|hpp)$' || true)
+          [[ ${#FILES[@]} -eq 0 ]] && { echo "No C/C++ files changed."; exit 0; }
+          HIT=0
+          for f in "${FILES[@]}"; do
+            if grep -RInE '(^|[^A-Za-z0-9_])goto([^A-Za-z0-9_]|$)' "$f" >/dev/null; then
+              echo "::error file=$f::Use of 'goto' is forbidden by coding standards."
+              HIT=1
+            fi
+          done
+          exit $HIT
+
+      - name: Check for module headers — warn by default
+        shell: bash
+        run: |
+          set -euo pipefail
+          exts_regex=$(echo "$HEADER_EXTS" | sed 's/ /|/g')
+          mapfile -t FILES < <(echo "${{ steps.diff.outputs.changed }}" | grep -E "\.(${exts_regex})$" || true)
+          [[ ${#FILES[@]} -eq 0 ]] && { echo "No targeted source files changed."; exit 0; }
+
+          has_header () {
+            local file="$1" max="$2"
+            head -n "$max" "$file" | awk '
+              BEGIN{inblock=0; lines=0}
+              /^[[:space:]]*(\/\/|#|\*|\/\*|"""|'\'''\''')/ { inblock=1; lines++ }
+              /^[[:space:]]*$/ { if(inblock && lines>=3){print "YES"; exit} }
+              END{ if(inblock && lines>=3) print "YES" }'
+          }
+
+          FAIL=0
+          for f in "${FILES[@]}"; do
+            res=$(has_header "$f" "$HEADER_MAX_SCAN_LINES" || true)
+            if [[ "$res" != "YES" ]]; then
+              if [[ "$STRICT_HEADERS" == "true" ]]; then
+                echo "::error file=$f::Add a module header (name, author, date, description, functions, globals)."
+                FAIL=1
+              else
+                echo "::warning file=$f::Missing/short module header (add name, author, date, description, functions, globals)."
+              fi
+            fi
+          done
+          exit $FAIL
+
+  python-advisory:
+    name: Python Advisory (structure hints only)
+    runs-on: ubuntu-latest
+    continue-on-error: true   # annotate only; do not fail the workflow
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: detect_py
+        name: Detect Python presence
+        shell: bash
+        run: |
+          if git ls-files '**/*.py' | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.detect_py.outputs.found == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - if: steps.detect_py.outputs.found == 'true'
+        name: Install Ruff
+        run: pip install ruff
+
+      - if: steps.detect_py.outputs.found == 'true'
+        name: Annotate complexity / long functions (advisory)
+        run: |
+          # Gentle structural checks: complexity & long functions + unuseds
+          ruff check . \
+            --select C90,PLR0915,F401,F841 \
+            --output-format=github || true
