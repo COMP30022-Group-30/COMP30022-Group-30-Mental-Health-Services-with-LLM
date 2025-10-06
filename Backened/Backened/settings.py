@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import os
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -101,6 +103,15 @@ DATABASES = {
     }
 }
 
+# If provided, use a writable SQLite file path (e.g., /tmp/db.sqlite3 on EB)
+_sqlite_override = os.getenv("SQLITE_PATH")
+if _sqlite_override:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": _sqlite_override,
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
