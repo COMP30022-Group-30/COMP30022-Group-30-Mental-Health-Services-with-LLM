@@ -1,3 +1,4 @@
+//Home
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Title from '@/components/misc/Title';
