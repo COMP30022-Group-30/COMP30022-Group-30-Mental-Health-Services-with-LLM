@@ -6,6 +6,7 @@ export type ViteEnv = {
   VITE_SERVICES_MOCK?: string; // '1' enables mock services
   VITE_SUPABASE_URL?: string;
   VITE_SUPABASE_ANON_KEY?: string;
+  VITE_SUPABASE_SERVICE_KEY?: string;
   VITE_BACKEND_ORIGIN?: string;
   VITE_DJANGO_ADMIN_PATH?: string;
   VITE_ADMIN_AUTH_GOOGLE?: string;

@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { useAdminAuth } from '@/admin/AdminAuthContext';
 import { JSX } from 'react';
 
 /**
@@ -8,10 +8,12 @@ import { JSX } from 'react';
  * - If you later add roles, check user.role === 'admin' here.
  */
 export default function RequireAdmin({ children }: { children: JSX.Element }) {
-  const { user } = useAuth();
+  const { admin, loading } = useAdminAuth();
   const location = useLocation();
 
-  if (!user) {
+  if (loading) return <p>Checking admin access…</p>;
+
+  if (!admin) {
     return <Navigate to="/admin/signin" state={{ from: location.pathname }} replace />;
   }
 

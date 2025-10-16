@@ -2,7 +2,13 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 import Home from '@/pages/Home';
 import Chat from '@/pages/Chat';
 import AdminSignIn from '@/pages/admin/AdminSignIn';
-import AdminIndex from '@/pages/admin/AdminIndex';
+import AdminLayout from '@/pages/admin/AdminLayout';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import AdminProvidersPage from '@/pages/admin/AdminProvidersPage';
+import AdminServicesPage from '@/pages/admin/AdminServicesPage';
+import AdminAdminsPage from '@/pages/admin/AdminAdminsPage';
+import AdminProfilePage from '@/pages/admin/AdminProfilePage';
 import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
 import AuthCallback from '@/pages/AuthCallback';
@@ -47,12 +53,19 @@ export default function App() {
           <Route path="/admin/signin" element={<AdminSignIn />} />
           <Route
             path="/admin"
-            element={
+            element={(
               <RequireAdmin>
-                <AdminIndex />
+                <AdminLayout />
               </RequireAdmin>
-            }
-          />
+            )}
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="providers" element={<AdminProvidersPage />} />
+            <Route path="services" element={<AdminServicesPage />} />
+            <Route path="admins" element={<AdminAdminsPage />} />
+            <Route path="profile" element={<AdminProfilePage />} />
+          </Route>
 
           <Route path="/styleguide" element={<Styleguide />} />
           <Route path="*" element={<NotFound />} />

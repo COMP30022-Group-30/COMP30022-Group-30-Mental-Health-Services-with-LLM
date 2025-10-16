@@ -1,12 +1,16 @@
-import { ReactNode } from 'react';
+import { ReactElement, ReactNode } from 'react';
+import { render as rtlRender, RenderOptions } from '@testing-library/react';
 import { MemoryRouter, MemoryRouterProps } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { AdminAuthProvider } from './admin/AdminAuthContext';
+import type { AdminUser } from './types/admin';
 
 type ProvidersProps = {
   children: ReactNode;
   router?: Partial<MemoryRouterProps>;
   /** If you pass a user, we simulate logged-in state via localStorage */
   auth?: { user?: { id: string; name: string } | null };
+  admin?: { admin?: AdminUser | null; loading?: boolean; error?: string | null };
 };
 
 /**
@@ -15,7 +19,7 @@ type ProvidersProps = {
  *  - AuthProvider (so useAuth() works)
  *  - Optional "logged-in" state by seeding localStorage keys
  */
-export function Providers({ children, router, auth }: ProvidersProps) {
+export function Providers({ children, router, auth, admin }: ProvidersProps) {
   const initialEntries = router?.initialEntries ?? ['/'];
 
   // Normalise auth state into storage so AuthProvider picks it up
@@ -29,7 +33,28 @@ export function Providers({ children, router, auth }: ProvidersProps) {
 
   return (
     <AuthProvider>
-      <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+      <AdminAuthProvider
+        hydrateOnMount={false}
+        initialState={admin ?? { admin: null, loading: false }}
+      >
+        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+      </AdminAuthProvider>
     </AuthProvider>
   );
 }
+
+type CustomRenderOptions = RenderOptions & Omit<ProvidersProps, 'children'>;
+
+export function render(
+  ui: ReactElement,
+  { router, auth, admin, ...renderOptions }: CustomRenderOptions = {},
+) {
+  return rtlRender(
+    <Providers router={router} auth={auth} admin={admin}>
+      {ui}
+    </Providers>,
+    renderOptions,
+  );
+}
+
+export * from '@testing-library/react';
