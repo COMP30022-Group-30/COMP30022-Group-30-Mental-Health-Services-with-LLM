@@ -10,16 +10,16 @@ export default function DyslexicModeToggle({ className }: DyslexicModeToggleProp
   const { dyslexicMode, toggleDyslexicMode } = useDyslexicMode();
 
   return (
-    <div className={['dyslexic-toggle', className].filter(Boolean).join(' ')}>
+    <div className={['accessibility-toggle', 'dyslexic-toggle', className].filter(Boolean).join(' ')}>
       <button
         type="button"
-        className="dyslexic-toggle-button"
+        className="accessibility-toggle-button dyslexic-toggle-button"
         aria-pressed={dyslexicMode}
         aria-describedby={hintId}
         onClick={toggleDyslexicMode}
       >
-        <span className="dyslexic-toggle-icon" aria-hidden />
-        <span className="dyslexic-toggle-text">
+        <span className="accessibility-toggle-icon dyslexic-toggle-icon" aria-hidden />
+        <span className="accessibility-toggle-text dyslexic-toggle-text">
           <strong>{dyslexicMode ? 'Dyslexia-friendly mode on' : 'Enable dyslexia-friendly mode'}</strong>
           <small>{dyslexicMode ? 'Readable fonts and spacing applied' : 'Switch to dyslexia-optimized view'}</small>
         </span>

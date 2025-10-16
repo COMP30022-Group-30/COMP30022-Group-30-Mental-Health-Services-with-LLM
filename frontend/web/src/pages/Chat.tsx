@@ -4,6 +4,7 @@ import Title from '@/components/misc/Title';
 import MessageList, { Message } from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
 import { useAuth } from '@/auth/AuthContext';
+import { useEasyMode } from '@/accessibility/EasyModeContext';
 import {
   loadPreloginChat,
   savePreloginChat,
@@ -59,7 +60,8 @@ function useAtBottom(ref: React.RefObject<HTMLDivElement>, threshold = 64) {
 
 export default function Chat() {
   const { user } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { easyMode } = useEasyMode();
+  const [sidebarOpen, setSidebarOpen] = useState(() => !easyMode);
 
   // Refs
   const pageRef = useRef<HTMLDivElement>(null);     // whole [sidebar|main] + composer grid
@@ -87,6 +89,10 @@ export default function Chat() {
       setLastActivity(Date.now());
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    setSidebarOpen(easyMode ? false : true);
+  }, [easyMode]);
 
   // persist
   useEffect(() => {
@@ -176,7 +182,7 @@ export default function Chat() {
 
       {/* Signed-out banner */}
       {!user && (
-        <div className="anon-banner" role="note" aria-live="polite">
+        <div className="anon-banner" role="note" aria-live="polite" data-easy-mode="hide">
           <span>You’re chatting <strong>anonymously</strong>. Sign in to save your conversation for later.</span>
           <a className="btn btn-secondary" href="/login">Sign in</a>
         </div>

@@ -86,6 +86,7 @@ export default function MessageInput({ onSend, disabled }: Props) {
           aria-label={stt.isListening || rec.recording ? 'Stop voice input' : 'Start voice input'}
           onClick={handleMicClick}
           title="Speak instead of typing"
+          data-easy-mode="hide"
         >
           🎤
         </button>

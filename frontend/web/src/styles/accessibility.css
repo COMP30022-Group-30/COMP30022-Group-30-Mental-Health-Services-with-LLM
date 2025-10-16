@@ -1,48 +1,55 @@
 @import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;600&family=Lexend:wght@400;500;600&display=swap");
 
-.dyslexic-toggle {
+.accessibility-toggle {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   color: var(--text);
-  max-width: 260px;
+  max-width: 320px;
 }
 
-.dyslexic-toggle-button {
+.accessibility-toggle-button {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  min-height: 44px;
-  padding: 12px 14px;
+  min-height: 52px;
+  padding: 14px 16px;
   border-radius: var(--radius-md);
   border: 2px solid var(--grey-300);
   background: var(--surface);
   cursor: pointer;
   font: inherit;
   color: inherit;
-  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
 }
 
-.dyslexic-toggle-button:hover {
+.accessibility-toggle-button:hover {
   transform: translateY(-1px);
   background: var(--surface-alt);
+  box-shadow: var(--shadow-sm);
 }
 
-.dyslexic-toggle-button:focus-visible {
+.accessibility-toggle-button:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 
-.dyslexic-toggle-button[aria-pressed="true"] {
+.accessibility-toggle-button[aria-pressed="true"] {
   border-color: var(--brand);
   background: color-mix(in srgb, var(--brand) 18%, var(--surface));
   color: color-mix(in srgb, var(--brand) 55%, var(--text));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 28%, transparent);
 }
 
-.dyslexic-toggle-icon {
-  width: 24px;
-  height: 24px;
+.accessibility-toggle-icon {
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   border: 2px solid currentColor;
   display: inline-flex;
@@ -52,40 +59,144 @@
   transition: background var(--dur-fast) var(--ease);
 }
 
-.dyslexic-toggle-button[aria-pressed="true"] .dyslexic-toggle-icon {
+.accessibility-toggle-button[aria-pressed="true"] .accessibility-toggle-icon {
   background: currentColor;
 }
 
-.dyslexic-toggle-button[aria-pressed="true"] .dyslexic-toggle-icon::after {
+.accessibility-toggle-button[aria-pressed="true"] .accessibility-toggle-icon::after {
   content: "";
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: inherit;
   background: var(--brand-contrast);
 }
 
-.dyslexic-toggle-text {
+.accessibility-toggle-text {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 2px;
 }
 
-.dyslexic-toggle-text strong {
+.accessibility-toggle-text strong {
   font-weight: 600;
   line-height: 1.2;
 }
 
-.dyslexic-toggle-text small {
+.accessibility-toggle-text small {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   line-height: 1.4;
 }
 
 @media (max-width: 768px) {
-  .dyslexic-toggle {
+  .accessibility-toggle {
     width: 100%;
     max-width: none;
   }
+}
+
+html[data-easy-mode="on"] {
+  --fs-base: clamp(1rem, 0.92rem + 0.45vw, 1.15rem);
+  --lh-base: 1.75;
+  --bg: #f4f7fc;
+  --surface: #ffffff;
+  --surface-alt: #eef2ff;
+  --text: #262f3c;
+  --muted: #475569;
+  --link: #2456b5;
+  --focus: #2563eb;
+  scroll-behavior: smooth;
+}
+
+html[data-easy-mode="on"] body {
+  background: var(--bg);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+html[data-easy-mode="on"] .app,
+html[data-easy-mode="on"] main,
+html[data-easy-mode="on"] .container {
+  max-width: min(960px, 95vw);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+html[data-easy-mode="on"] .header,
+html[data-easy-mode="on"] .footer,
+html[data-easy-mode="on"] .card,
+html[data-easy-mode="on"] .accessibility-card {
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--brand) 12%, var(--grey-300));
+  background: color-mix(in srgb, var(--surface) 92%, rgba(255, 255, 255, 0.85));
+}
+
+html[data-easy-mode="on"] .card,
+html[data-easy-mode="on"] .accessibility-card {
+  padding: clamp(1.5rem, 1rem + 1vw, 2.25rem);
+  border-radius: calc(var(--radius-lg) * 1.05);
+}
+
+html[data-easy-mode="on"] .card > * + *,
+html[data-easy-mode="on"] .accessibility-card > * + * {
+  margin-top: 0.75rem;
+}
+
+html[data-easy-mode="on"] .btn,
+html[data-easy-mode="on"] .btn-primary,
+html[data-easy-mode="on"] .btn-secondary {
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 14px 22px;
+  border-width: 2px;
+  border-radius: calc(var(--radius-md) * 1.2);
+}
+
+html[data-easy-mode="on"] .btn.btn-small {
+  min-height: 44px;
+  padding-block: 10px;
+}
+
+html[data-easy-mode="on"] textarea,
+html[data-easy-mode="on"] input,
+html[data-easy-mode="on"] select {
+  font-size: 1.05rem;
+  padding: 14px 16px;
+  border-width: 2px;
+  border-radius: calc(var(--radius-md) * 1.1);
+}
+
+html[data-easy-mode="on"] .composer-actions {
+  gap: 16px;
+}
+
+html[data-easy-mode="on"] .chat-input textarea {
+  min-height: 140px;
+}
+
+html[data-easy-mode="on"] .nav {
+  gap: 10px;
+}
+
+html[data-easy-mode="on"] .nav a {
+  font-size: 1rem;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+}
+
+html[data-easy-mode="on"] [data-easy-mode="hide"] {
+  display: none !important;
+}
+
+html[data-easy-mode="on"] [data-easy-mode="priority"] {
+  font-weight: 700;
+}
+
+html[data-easy-mode="on"] .layout-grid,
+html[data-easy-mode="on"] .grid {
+  gap: clamp(1.5rem, 1rem + 1vw, 2rem);
 }
 
 html[data-dyslexic-mode="on"] {

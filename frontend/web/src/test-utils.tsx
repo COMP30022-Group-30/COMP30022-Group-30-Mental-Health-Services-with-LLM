@@ -9,6 +9,7 @@ import type { User } from './auth/types';
 // Extra providers from your admin & accessibility work
 import { AdminAuthProvider } from './admin/AdminAuthContext';
 import { DyslexicModeProvider } from './accessibility/DyslexicModeContext';
+import { EasyModeProvider } from './accessibility/EasyModeContext';
 import type { AdminUser } from './types/admin';
 
 type ProvidersProps = {
@@ -34,18 +35,21 @@ export function Providers({ children, router, auth, admin }: ProvidersProps) {
 
   // Ensure dyslexic-mode starts disabled for predictable tests
   localStorage.removeItem('support-atlas:preferences:dyslexic-mode');
+  localStorage.removeItem('support-atlas:preferences:easy-mode');
 
   return (
-    <DyslexicModeProvider>
-      <AuthProvider>
-        <AdminAuthProvider
-          hydrateOnMount={false}
-          initialState={admin ?? { admin: null, loading: false, error: null }}
-        >
-          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
-        </AdminAuthProvider>
-      </AuthProvider>
-    </DyslexicModeProvider>
+    <EasyModeProvider>
+      <DyslexicModeProvider>
+        <AuthProvider>
+          <AdminAuthProvider
+            hydrateOnMount={false}
+            initialState={admin ?? { admin: null, loading: false, error: null }}
+          >
+            <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+          </AdminAuthProvider>
+        </AuthProvider>
+      </DyslexicModeProvider>
+    </EasyModeProvider>
   );
 }
 

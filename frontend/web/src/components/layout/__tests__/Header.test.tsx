@@ -1,16 +1,19 @@
 import { render, screen, within } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import Header from '@/components/layout/Header';
 import { it, expect } from 'vitest';
+import Header from '@/components/layout/Header';
 import { DyslexicModeProvider } from '@/accessibility/DyslexicModeContext';
+import { EasyModeProvider } from '@/accessibility/EasyModeContext';
 
 it('renders primary nav links (no Admin in header)', () => {
   render(
-    <DyslexicModeProvider>
-      <BrowserRouter>
-        <Header />
-      </BrowserRouter>
-    </DyslexicModeProvider>
+    <EasyModeProvider>
+      <DyslexicModeProvider>
+        <BrowserRouter>
+          <Header />
+        </BrowserRouter>
+      </DyslexicModeProvider>
+    </EasyModeProvider>
   );
 
   // Scope to the header’s primary navigation so footer links don’t interfere

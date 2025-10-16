@@ -1,5 +1,6 @@
-import Container from '@/components/layout/Container';
 import DyslexicModeToggle from '@/components/accessibility/DyslexicModeToggle';
+import EasyModeToggle from '@/components/accessibility/EasyModeToggle';
+import Container from '@/components/layout/Container';
 
 export default function Accessibility() {
   return (
@@ -11,6 +12,20 @@ export default function Accessibility() {
           and you can switch them off at any time.
         </p>
       </header>
+
+      <div className="accessibility-card">
+        <h2>Easy mode</h2>
+        <p>
+          Strip away visual noise and focus on primary actions. Easy Mode emphasises key flows, enlarges controls,
+          and gently hides advanced options to reduce overwhelm.
+        </p>
+        <EasyModeToggle className="accessibility-toggle" />
+        <ul>
+          <li>Increases font sizes, button targets, and spacing for calmer scanning.</li>
+          <li>Collapses secondary panels and dense UI controls until you need them.</li>
+          <li>Remembers your choice on this browser so the site stays simplified.</li>
+        </ul>
+      </div>
 
       <div className="accessibility-card">
         <h2>Dyslexia-friendly mode</h2>

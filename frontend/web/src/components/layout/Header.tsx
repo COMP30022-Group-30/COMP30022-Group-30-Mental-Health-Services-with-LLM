@@ -38,12 +38,16 @@ export default function Header() {
               <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : undefined)}>
                 Home
               </NavLink>
-              <NavLink to="/chat" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              <NavLink
+                to="/chat"
+                data-easy-mode="priority"
+                className={({ isActive }) => (isActive ? 'active' : undefined)}
+              >
                 Chat
               </NavLink>
               {/* Removed Services; add in-page anchors for Help & Crisis and FAQ */}
-              <a href="/#help-crisis">Help &amp; Crisis</a>
-              <a href="/#faq">FAQ</a>
+              <a href="/#help-crisis" data-easy-mode="priority">Help &amp; Crisis</a>
+              <a href="/#faq" data-easy-mode="hide">FAQ</a>
             </nav>
 
             <NavLink
@@ -69,7 +73,7 @@ export default function Header() {
                     <span className="profile-chip-label">
                       <strong>{user.name ?? user.email ?? 'Profile'}</strong>
                       {user.name && user.email && (
-                        <small>{user.email}</small>
+                        <small data-easy-mode="hide">{user.email}</small>
                       )}
                     </span>
                   </NavLink>
