@@ -4,13 +4,16 @@ import { MemoryRouter, MemoryRouterProps } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { AdminAuthProvider } from './admin/AdminAuthContext';
 import { DyslexicModeProvider } from './accessibility/DyslexicModeContext';
+import type { User } from './auth/types';
 import type { AdminUser } from './types/admin';
+
+type TestUser = User | { id: string; name?: string; email?: string; avatarUrl?: string };
 
 type ProvidersProps = {
   children: ReactNode;
   router?: Partial<MemoryRouterProps>;
   /** If you pass a user, we simulate logged-in state via localStorage */
-  auth?: { user?: { id: string; name: string } | null };
+  auth?: { user?: TestUser | null; loading?: boolean };
   admin?: { admin?: AdminUser | null; loading?: boolean; error?: string | null };
 };
 
@@ -23,10 +26,17 @@ type ProvidersProps = {
 export function Providers({ children, router, auth, admin }: ProvidersProps) {
   const initialEntries = router?.initialEntries ?? ['/'];
 
+  const authUser = auth?.user ? ({ ...auth.user } as User) : null;
+  const authInitialState = {
+    user: authUser,
+    loading: auth?.loading ?? false,
+  };
+  const adminInitialState = admin ?? { admin: null, loading: false, error: null };
+
   // Normalise auth state into storage so AuthProvider picks it up
-  if (auth?.user) {
+  if (authUser) {
     localStorage.setItem('sa_token', 'test-token');
-    localStorage.setItem('sa_user', JSON.stringify(auth.user));
+    localStorage.setItem('sa_user', JSON.stringify(authUser));
   } else {
     localStorage.removeItem('sa_token');
     localStorage.removeItem('sa_user');
@@ -35,10 +45,10 @@ export function Providers({ children, router, auth, admin }: ProvidersProps) {
 
   return (
     <DyslexicModeProvider>
-      <AuthProvider>
+      <AuthProvider initialState={authInitialState}>
         <AdminAuthProvider
           hydrateOnMount={false}
-          initialState={admin ?? { admin: null, loading: false }}
+          initialState={adminInitialState}
         >
           <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
         </AdminAuthProvider>

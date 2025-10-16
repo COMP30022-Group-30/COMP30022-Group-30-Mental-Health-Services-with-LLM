@@ -25,6 +25,7 @@ class OpenAIClient:
     def __init__(self) -> None:
         self.settings = get_settings()
         self._client: Optional[openai.OpenAI] = None
+        self._chat_llm: Optional[ChatOpenAI] = None
 
     @property
     def client(self) -> openai.OpenAI:
@@ -36,8 +37,76 @@ class OpenAIClient:
         if self._client is None:
             if not self.settings.openai_api_key:
                 raise RuntimeError("OPENAI_API_KEY is not configured.")
+            openai.api_key = self.settings.openai_api_key
             self._client = openai.OpenAI(api_key=self.settings.openai_api_key)
         return self._client
+
+    def get_chat_llm(
+        self,
+        *,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **overrides: Any,
+    ) -> ChatOpenAI:
+        """
+        Provide a LangChain `ChatOpenAI` instance configured from application
+        settings. Results are cached so repeated callers reuse the same HTTP
+        session. Optional overrides mirror the legacy helper API.
+        """
+
+        if self._chat_llm is None:
+            if not self.settings.openai_api_key:
+                raise RuntimeError("OPENAI_API_KEY is not configured.")
+
+            self._chat_llm = ChatOpenAI(
+                api_key=self.settings.openai_api_key,
+                model=model or self.settings.openai_model,
+                temperature=self._resolve_temperature(temperature),
+                max_tokens=self._resolve_max_tokens(max_tokens),
+                max_retries=overrides.get("max_retries", 3),
+                timeout=overrides.get("timeout"),
+            )
+        else:
+            if model and getattr(self._chat_llm, "model_name", None) != model:
+                self._chat_llm.model_name = model
+            if temperature is not None:
+                self._chat_llm.temperature = temperature
+            if max_tokens is not None:
+                self._chat_llm.max_tokens = max_tokens
+
+        return self._chat_llm
+
+    def create_chat_llm_with_params(
+        self,
+        *,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **overrides: Any,
+    ) -> ChatOpenAI:
+        """
+        Create a new `ChatOpenAI` instance with custom parameters without touching
+        the cached shared instance. Handy for background tasks that need different
+        sampling strategies.
+        """
+
+        if not self.settings.openai_api_key:
+            raise RuntimeError("OPENAI_API_KEY is not configured.")
+
+        return ChatOpenAI(
+            api_key=self.settings.openai_api_key,
+            model=self.settings.openai_model,
+            temperature=self._resolve_temperature(temperature),
+            max_tokens=self._resolve_max_tokens(max_tokens),
+            max_retries=overrides.get("max_retries", 3),
+            timeout=overrides.get("timeout"),
+        )
+
+    def _resolve_temperature(self, override: Optional[float]) -> float:
+        return override if override is not None else self.settings.openai_temperature
+
+    def _resolve_max_tokens(self, override: Optional[int]) -> Optional[int]:
+        return override if override is not None else self.settings.max_response_tokens
 
     async def test_connection(self) -> Dict[str, Any]:
         """
@@ -75,9 +144,6 @@ def get_openai_client() -> OpenAIClient:
     return openai_client
 
 
-_cached_chat_llm: Optional[ChatOpenAI] = None
-
-
 def get_chat_llm(
     *,
     model: Optional[str] = None,
@@ -85,35 +151,11 @@ def get_chat_llm(
     max_tokens: Optional[int] = None,
     **overrides: Any,
 ) -> ChatOpenAI:
-    """
-    Provide a LangChain `ChatOpenAI` instance configured from application
-    settings. Results are cached at the module level so repeated callers reuse
-    the same underlying HTTP session which improves performance.
-    """
+    """Provide access to the shared LangChain client with optional overrides."""
 
-    global _cached_chat_llm
-
-    settings = get_settings()
-
-    if _cached_chat_llm is None:
-        if not settings.openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is not configured.")
-
-        _cached_chat_llm = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model=model or settings.openai_model,
-            temperature=temperature if temperature is not None else settings.openai_temperature,
-            max_tokens=max_tokens if max_tokens is not None else settings.max_response_tokens,
-            max_retries=overrides.get("max_retries", 3),
-            timeout=overrides.get("timeout"),
-        )
-    else:
-        # Apply any on-the-fly overrides without rebuilding the client.
-        if model and _cached_chat_llm.model_name != model:
-            _cached_chat_llm.model_name = model
-        if temperature is not None:
-            _cached_chat_llm.temperature = temperature
-        if max_tokens is not None:
-            _cached_chat_llm.max_tokens = max_tokens
-
-    return _cached_chat_llm
+    return openai_client.get_chat_llm(
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        **overrides,
+    )

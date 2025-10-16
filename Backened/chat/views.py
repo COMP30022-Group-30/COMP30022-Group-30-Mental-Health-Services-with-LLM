@@ -66,20 +66,30 @@ class ChatMessageAPIView(APIView):
 
         # --- (2) Decide route: FastAPI proxy or local chat_service ---
         fastapi_from_settings = getattr(settings, "FASTAPI_CHAT_URL", None)
-        use_fastapi = bool(payload.get("use_fastapi")) or bool(fastapi_from_settings)
+        backend_pref = getattr(settings, "CHAT_BACKEND", "")
+        via = (request.query_params.get("via") or "").lower()
+        use_fastapi = (
+            bool(payload.get("use_fastapi"))
+            or bool(fastapi_from_settings)
+            or backend_pref.lower() == "fastapi"
+            or via == "fastapi"
+        )
 
         if use_fastapi:
-            # preserve the original hardcoded path as a fallback
+            # Preserve explicit override path while keeping hardcoded fallback
             fastapi_url = (
                 payload.get("fastapi_url")
                 or fastapi_from_settings
                 or "https://your-aws-fastapi-url.com/api/v1/chat/chat"
             )
+            fastapi_payload = (
+                payload if isinstance(payload, dict) else {"message": user_message, "session_id": session_id}
+            )
             try:
                 with httpx.Client() as client:
                     response = client.post(
                         fastapi_url,
-                        json={"message": user_message, "session_id": session_id},
+                        json=fastapi_payload,
                         timeout=30.0,
                     )
                     response.raise_for_status()
@@ -89,8 +99,14 @@ class ChatMessageAPIView(APIView):
                     {
                         "response": llm_response.get("message"),
                         "session_id": llm_response.get("session_id"),
+                        "action": llm_response.get("action"),
                     },
                     status=status.HTTP_200_OK,
+                )
+            except httpx.HTTPError as e:
+                return Response(
+                    {"error": f"FastAPI proxy error: {e}"},
+                    status=status.HTTP_502_BAD_GATEWAY,
                 )
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
