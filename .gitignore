@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 .env
-=======
 # Dependencies
 node_modules/
 web/node_modules/
@@ -28,9 +26,14 @@ venv
 
 *.pyc
 __pycache__/
->>>>>>> develop
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+Backened/**/__pycache__/
+db.sqlite3
