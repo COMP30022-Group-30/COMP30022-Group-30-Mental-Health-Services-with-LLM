@@ -14,6 +14,7 @@ import Profile from '@/pages/Profile';
 import AuthCallback from '@/pages/AuthCallback';
 import ResetPassword from '@/pages/ResetPassword';
 import Accessibility from '@/pages/Accessibility';
+import Contact from '@/pages/Contact';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Container from '@/components/layout/Container';
@@ -69,6 +70,7 @@ export default function App() {
           </Route>
 
           <Route path="/accessibility" element={<Accessibility />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/styleguide" element={<Styleguide />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
