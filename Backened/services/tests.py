@@ -1,3 +1,10 @@
-from django.test import TestCase
+from unittest import skip
 
-# Create your tests here.
+
+@skip("Django admin API superseded by Supabase. Tests retained for reference only.")
+class DisabledServiceManagementTests:
+    """
+    Legacy tests referencing Django REST admin endpoints.
+    """
+
+    pass

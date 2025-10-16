@@ -1,3 +1,10 @@
-from django.test import TestCase
+from unittest import skip
 
-# Create your tests here.
+
+@skip("Django admin API retired in favour of Supabase. See supabase/admin_schema.sql.")
+class DisabledAdminPortalTests:
+    """
+    Placeholder test suite kept to document the migration to Supabase-based admin.
+    """
+
+    pass
