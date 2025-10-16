@@ -1,0 +1,174 @@
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;600&family=Lexend:wght@400;500;600&display=swap");
+
+.dyslexic-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text);
+  max-width: 260px;
+}
+
+.dyslexic-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--grey-300);
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.dyslexic-toggle-button:hover {
+  transform: translateY(-1px);
+  background: var(--surface-alt);
+}
+
+.dyslexic-toggle-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.dyslexic-toggle-button[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 18%, var(--surface));
+  color: color-mix(in srgb, var(--brand) 55%, var(--text));
+}
+
+.dyslexic-toggle-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.dyslexic-toggle-button[aria-pressed="true"] .dyslexic-toggle-icon {
+  background: currentColor;
+}
+
+.dyslexic-toggle-button[aria-pressed="true"] .dyslexic-toggle-icon::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: inherit;
+  background: var(--brand-contrast);
+}
+
+.dyslexic-toggle-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.dyslexic-toggle-text strong {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.dyslexic-toggle-text small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .dyslexic-toggle {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+html[data-dyslexic-mode="on"] {
+  --font-ui: "Atkinson Hyperlegible", "Lexend", Verdana, Tahoma, Arial, sans-serif;
+  --font-display: "Lexend", "Atkinson Hyperlegible", Verdana, Tahoma, Arial, sans-serif;
+  --fs-base: 18px;
+  --lh-base: 1.75;
+  --bg: #f6f4ef;
+  --surface: #fbfaf6;
+  --surface-alt: #eef1ff;
+  --text: #2d2a29;
+  --muted: #4a4744;
+  --link: #0f5ea8;
+  --focus: #2266b3;
+}
+
+html[data-dyslexic-mode="on"] body {
+  letter-spacing: 0.015em;
+  word-spacing: 0.08em;
+  background: var(--bg);
+}
+
+html[data-dyslexic-mode="on"] .header,
+html[data-dyslexic-mode="on"] .footer,
+html[data-dyslexic-mode="on"] .card,
+html[data-dyslexic-mode="on"] .table,
+html[data-dyslexic-mode="on"] .modal {
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--brand) 15%, var(--grey-300));
+}
+
+html[data-dyslexic-mode="on"] p,
+html[data-dyslexic-mode="on"] li,
+html[data-dyslexic-mode="on"] label,
+html[data-dyslexic-mode="on"] input,
+html[data-dyslexic-mode="on"] textarea,
+html[data-dyslexic-mode="on"] select,
+html[data-dyslexic-mode="on"] button,
+html[data-dyslexic-mode="on"] .btn {
+  font-family: var(--font-ui);
+  letter-spacing: 0.02em;
+  word-spacing: 0.1em;
+}
+
+html[data-dyslexic-mode="on"] h1,
+html[data-dyslexic-mode="on"] h2,
+html[data-dyslexic-mode="on"] h3,
+html[data-dyslexic-mode="on"] .h1,
+html[data-dyslexic-mode="on"] .h2,
+html[data-dyslexic-mode="on"] .h3 {
+  font-family: var(--font-display);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+html[data-dyslexic-mode="on"] a {
+  text-decoration: underline;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
+}
+
+html[data-dyslexic-mode="on"] .btn,
+html[data-dyslexic-mode="on"] .chip,
+html[data-dyslexic-mode="on"] .switch {
+  border-width: 2px;
+}
+
+html[data-dyslexic-mode="on"] .btn-primary {
+  letter-spacing: 0.03em;
+  font-weight: 700;
+}
+
+html[data-dyslexic-mode="on"] .form-field input,
+html[data-dyslexic-mode="on"] .form-field textarea,
+html[data-dyslexic-mode="on"] .form-field select {
+  border-width: 2px;
+}
+
+html[data-dyslexic-mode="on"] .nav a {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+html[data-dyslexic-mode="on"] .app {
+  filter: none;
+}

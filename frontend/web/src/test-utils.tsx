@@ -3,6 +3,7 @@ import { render as rtlRender, RenderOptions } from '@testing-library/react';
 import { MemoryRouter, MemoryRouterProps } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { AdminAuthProvider } from './admin/AdminAuthContext';
+import { DyslexicModeProvider } from './accessibility/DyslexicModeContext';
 import type { AdminUser } from './types/admin';
 
 type ProvidersProps = {
@@ -30,16 +31,19 @@ export function Providers({ children, router, auth, admin }: ProvidersProps) {
     localStorage.removeItem('sa_token');
     localStorage.removeItem('sa_user');
   }
+  localStorage.removeItem('support-atlas:preferences:dyslexic-mode');
 
   return (
-    <AuthProvider>
-      <AdminAuthProvider
-        hydrateOnMount={false}
-        initialState={admin ?? { admin: null, loading: false }}
-      >
-        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
-      </AdminAuthProvider>
-    </AuthProvider>
+    <DyslexicModeProvider>
+      <AuthProvider>
+        <AdminAuthProvider
+          hydrateOnMount={false}
+          initialState={admin ?? { admin: null, loading: false }}
+        >
+          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        </AdminAuthProvider>
+      </AuthProvider>
+    </DyslexicModeProvider>
   );
 }
 

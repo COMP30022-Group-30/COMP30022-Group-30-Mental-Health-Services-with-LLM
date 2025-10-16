@@ -46,6 +46,14 @@ export default function Header() {
               <a href="/#faq">FAQ</a>
             </nav>
 
+            <NavLink
+              to="/accessibility"
+              className={({ isActive }) => (isActive ? 'accessibility-trigger active' : 'accessibility-trigger')}
+            >
+              <span aria-hidden className="accessibility-trigger-icon">♿</span>
+              <span className="accessibility-trigger-label">Accessibility</span>
+            </NavLink>
+
             <div className="auth-actions" aria-label="Account actions">
               {loading ? (
                 <span className="auth-status" aria-live="polite">Loading…</span>
