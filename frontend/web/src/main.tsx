@@ -5,6 +5,10 @@ import { AuthProvider } from '@/auth/AuthContext';
 import { AdminAuthProvider } from '@/admin/AdminAuthContext';
 import { DyslexicModeProvider } from '@/accessibility/DyslexicModeContext';
 import { EasyModeProvider } from '@/accessibility/EasyModeContext';
+import { HighContrastModeProvider } from '@/accessibility/HighContrastModeContext';
+import { ScreenReaderModeProvider } from '@/accessibility/ScreenReaderModeContext';
+import { LargeTextModeProvider } from '@/accessibility/LargeTextModeContext';
+import { ReducedMotionModeProvider } from '@/accessibility/ReducedMotionModeContext';
 import App from './App';
 import '@/styles/index.css';
 import '@/styles/tokens.css';
@@ -12,15 +16,23 @@ import '@/styles/tokens.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <EasyModeProvider>
-        <DyslexicModeProvider>
-          <AuthProvider>
-            <AdminAuthProvider>
-              <App />
-            </AdminAuthProvider>
-          </AuthProvider>
-        </DyslexicModeProvider>
-      </EasyModeProvider>
+      <ReducedMotionModeProvider>
+        <ScreenReaderModeProvider>
+          <HighContrastModeProvider>
+            <LargeTextModeProvider>
+              <EasyModeProvider>
+                <DyslexicModeProvider>
+                  <AuthProvider>
+                    <AdminAuthProvider>
+                      <App />
+                    </AdminAuthProvider>
+                  </AuthProvider>
+                </DyslexicModeProvider>
+              </EasyModeProvider>
+            </LargeTextModeProvider>
+          </HighContrastModeProvider>
+        </ScreenReaderModeProvider>
+      </ReducedMotionModeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

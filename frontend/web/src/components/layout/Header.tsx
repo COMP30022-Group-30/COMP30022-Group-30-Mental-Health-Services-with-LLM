@@ -2,9 +2,11 @@ import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import Container from './Container';
 import { useAuth } from '@/auth/AuthContext';
+import { useScreenReaderMode } from '@/accessibility/ScreenReaderModeContext';
 
 export default function Header() {
   const { user, loading, signOut } = useAuth();
+  const { screenReaderAssist } = useScreenReaderMode();
 
   const initials = useMemo(() => {
     const source = user?.name ?? user?.email ?? '';
@@ -27,6 +29,7 @@ export default function Header() {
   return (
     <header className="header">
       <Container>
+        <a href="#main" className="skip-link">Skip to main content</a>
         <div className="header-inner">
           <a href="/" className="brand" aria-label="Support Atlas home">
             <span aria-hidden className="logo">SA</span>
@@ -34,7 +37,15 @@ export default function Header() {
           </a>
 
           <div className="header-right">
-            <nav className="nav" aria-label="Primary">
+            {screenReaderAssist && (
+              <p className="sr-only" aria-live="polite">
+                Screen reader assist mode is on. Use the skip link and landmarks to jump between sections.
+              </p>
+            )}
+            <nav
+              className="nav"
+              aria-label={screenReaderAssist ? 'Primary navigation — Support Atlas main sections' : 'Primary'}
+            >
               <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : undefined)}>
                 Home
               </NavLink>
@@ -54,7 +65,6 @@ export default function Header() {
               to="/accessibility"
               className={({ isActive }) => (isActive ? 'accessibility-trigger active' : 'accessibility-trigger')}
             >
-              <span aria-hidden className="accessibility-trigger-icon">♿</span>
               <span className="accessibility-trigger-label">Accessibility</span>
             </NavLink>
 

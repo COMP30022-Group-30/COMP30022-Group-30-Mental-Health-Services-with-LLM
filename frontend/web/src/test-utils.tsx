@@ -10,6 +10,10 @@ import type { User } from './auth/types';
 import { AdminAuthProvider } from './admin/AdminAuthContext';
 import { DyslexicModeProvider } from './accessibility/DyslexicModeContext';
 import { EasyModeProvider } from './accessibility/EasyModeContext';
+import { HighContrastModeProvider } from './accessibility/HighContrastModeContext';
+import { ScreenReaderModeProvider } from './accessibility/ScreenReaderModeContext';
+import { LargeTextModeProvider } from './accessibility/LargeTextModeContext';
+import { ReducedMotionModeProvider } from './accessibility/ReducedMotionModeContext';
 import type { AdminUser } from './types/admin';
 
 type ProvidersProps = {
@@ -33,23 +37,45 @@ export function Providers({ children, router, auth, admin }: ProvidersProps) {
     localStorage.removeItem('sa_user');
   }
 
-  // Ensure dyslexic-mode starts disabled for predictable tests
+  // Ensure accessibility preferences start disabled for predictable tests
   localStorage.removeItem('support-atlas:preferences:dyslexic-mode');
   localStorage.removeItem('support-atlas:preferences:easy-mode');
+  localStorage.removeItem('support-atlas:preferences:high-contrast-mode');
+  localStorage.removeItem('support-atlas:preferences:large-text-mode');
+  localStorage.removeItem('support-atlas:preferences:reduced-motion-mode');
+  localStorage.removeItem('support-atlas:preferences:screen-reader-mode');
+
+  if (typeof document !== 'undefined') {
+    const root = document.documentElement;
+    ['data-dyslexic-mode', 'data-easy-mode', 'data-high-contrast', 'data-large-text', 'data-reduced-motion', 'data-screen-reader-assist'].forEach((attr) => {
+      root.removeAttribute(attr);
+    });
+    ['dyslexic-mode', 'easy-mode', 'high-contrast-mode', 'large-text-mode', 'reduced-motion-mode', 'screen-reader-mode'].forEach((cls) => {
+      root.classList.remove(cls);
+    });
+  }
 
   return (
-    <EasyModeProvider>
-      <DyslexicModeProvider>
-        <AuthProvider>
-          <AdminAuthProvider
-            hydrateOnMount={false}
-            initialState={admin ?? { admin: null, loading: false, error: null }}
-          >
-            <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
-          </AdminAuthProvider>
-        </AuthProvider>
-      </DyslexicModeProvider>
-    </EasyModeProvider>
+    <ReducedMotionModeProvider>
+      <ScreenReaderModeProvider>
+        <HighContrastModeProvider>
+          <LargeTextModeProvider>
+            <EasyModeProvider>
+              <DyslexicModeProvider>
+                <AuthProvider>
+                  <AdminAuthProvider
+                    hydrateOnMount={false}
+                    initialState={admin ?? { admin: null, loading: false, error: null }}
+                  >
+                    <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+                  </AdminAuthProvider>
+                </AuthProvider>
+              </DyslexicModeProvider>
+            </EasyModeProvider>
+          </LargeTextModeProvider>
+        </HighContrastModeProvider>
+      </ScreenReaderModeProvider>
+    </ReducedMotionModeProvider>
   );
 }
 

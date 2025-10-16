@@ -27,7 +27,7 @@ export default function App() {
   return (
     <div className="app">
       <Header />
-      <Container as="main">
+      <Container as="main" id="main" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Home />} />
 
