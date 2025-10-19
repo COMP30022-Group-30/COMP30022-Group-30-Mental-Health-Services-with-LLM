@@ -35,6 +35,7 @@ SUPPORTED_LANGUAGES: Dict[str, LanguageMeta] = {
     "en": LanguageMeta(code="en", label="English", locale="en-AU"),
     "es": LanguageMeta(code="es", label="Español", locale="es-ES"),
     "hi": LanguageMeta(code="hi", label="हिन्दी", locale="hi-IN"),
+    "zh": LanguageMeta(code="zh", label="中文", locale="zh-CN"),
 }
 
 DEFAULT_LANGUAGE = "en"

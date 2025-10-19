@@ -11,6 +11,14 @@ def test_detect_language_spanish():
     assert result == "es"
 
 
+def test_detect_language_chinese():
+    result = translation.detect_language(
+        "你好，今天感觉怎么样？",
+        allow=translation.SUPPORTED_LANGUAGES.keys(),
+    )
+    assert result == "zh"
+
+
 def test_detect_language_fallback_on_empty():
     assert translation.detect_language("", allow=translation.SUPPORTED_LANGUAGES.keys()) == "en"
 
