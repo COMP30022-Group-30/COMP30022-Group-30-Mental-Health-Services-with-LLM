@@ -243,3 +243,6 @@ X_FRAME_OPTIONS = "DENY"
 
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
+
+API_BASE_URL = (os.getenv("API_BASE_URL") or "https://d1hfq1dvtow5bt.cloudfront.net").rstrip("/")
+CHAT_ENDPOINT = f"{API_BASE_URL}/api/v1/chat/chat"

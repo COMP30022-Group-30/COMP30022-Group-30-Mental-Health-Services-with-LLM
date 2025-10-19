@@ -2,7 +2,7 @@
 Supabase-only connection using direct REST API calls.
 Bypasses the problematic supabase-py client library.
 """
-
+ 
 import httpx
 from typing import Any, Dict, List, Optional, Set
 import structlog
