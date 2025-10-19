@@ -11,6 +11,13 @@ import httpx
 from .models import ChatSession, Message  # noqa: F401 (Message kept for future use)
 from .serializers import ChatSessionSerializer
 from llm.services.chat_service import chat_service
+from llm.utils.translation import (
+    DEFAULT_LANGUAGE,
+    SUPPORTED_LANGUAGES,
+    detect_language,
+    normalise_language,
+    translate_text,
+)
 
 
 class ChatSessionViewSet(viewsets.ModelViewSet):
@@ -64,6 +71,20 @@ class ChatMessageAPIView(APIView):
         if not user_message:
             return Response({"error": "Missing message"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # --- Language detection & translation setup ---
+        preferred_language = payload.get("language")
+        language = (
+            normalise_language(preferred_language)
+            if preferred_language
+            else detect_language(user_message, allow=SUPPORTED_LANGUAGES.keys())
+        )
+
+        message_for_backend = user_message
+        if language != DEFAULT_LANGUAGE:
+            translated = translate_text(user_message, DEFAULT_LANGUAGE, source_language=language)
+            if translated and translated.strip():
+                message_for_backend = translated
+
         # --- (2) Decide route: FastAPI proxy or local chat_service ---
         fastapi_from_settings = getattr(settings, "FASTAPI_CHAT_URL", None)
         backend_pref = getattr(settings, "CHAT_BACKEND", "")
@@ -82,9 +103,16 @@ class ChatMessageAPIView(APIView):
                 or fastapi_from_settings
                 or "https://your-aws-fastapi-url.com/api/v1/chat/chat"
             )
-            fastapi_payload = (
-                payload if isinstance(payload, dict) else {"message": user_message, "session_id": session_id}
+            fastapi_payload = dict(payload) if isinstance(payload, dict) else {}
+            fastapi_payload.update(
+                {
+                    "message": message_for_backend,
+                    "session_id": session_id,
+                    "language": language,
+                }
             )
+            if language != DEFAULT_LANGUAGE:
+                fastapi_payload.setdefault("original_message", user_message)
             try:
                 with httpx.Client() as client:
                     response = client.post(
@@ -95,11 +123,16 @@ class ChatMessageAPIView(APIView):
                     response.raise_for_status()
                     llm_response = response.json()
 
+                llm_reply = llm_response.get("message")
+                if language != DEFAULT_LANGUAGE and llm_reply:
+                    llm_reply = translate_text(llm_reply, language, source_language=DEFAULT_LANGUAGE)
+
                 return Response(
                     {
-                        "response": llm_response.get("message"),
+                        "response": llm_reply,
                         "session_id": llm_response.get("session_id"),
                         "action": llm_response.get("action"),
+                        "language": language,
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -114,14 +147,17 @@ class ChatMessageAPIView(APIView):
         # --- (3) Default: local chat_service (keep original behavior) ---
         try:
             llm_response = asyncio.run(
-                chat_service.process_message(user_message, session_id=session_id)
+                chat_service.process_message(message_for_backend, session_id=session_id)
             )
             llm_reply = llm_response.get("message", "No reply from LLM.")
+            if language != DEFAULT_LANGUAGE and llm_reply:
+                llm_reply = translate_text(llm_reply, language, source_language=DEFAULT_LANGUAGE)
             return Response(
                 {
                     "response": llm_reply,
                     "session_id": llm_response.get("session_id"),
                     "action": llm_response.get("action"),
+                    "language": language,
                 },
                 status=status.HTTP_200_OK,
             )

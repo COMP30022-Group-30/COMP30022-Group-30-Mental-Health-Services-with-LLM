@@ -127,4 +127,3 @@ def ensure_profile(sender, instance: User, created: bool, **kwargs):
 
     if created:
         Profile.objects.create(user=instance)
-    

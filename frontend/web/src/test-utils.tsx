@@ -1,10 +1,16 @@
 // frontend/web/src/test-utils.tsx
 import { ReactElement, ReactNode } from 'react';
 import { render as rtlRender, RenderOptions } from '@testing-library/react';
-import { MemoryRouter, MemoryRouterProps } from 'react-router-dom';
+import {
+  MemoryRouter,
+  MemoryRouterProps,
+  Route,
+  Routes,
+} from 'react-router-dom';
 
 import { AuthProvider } from './auth/AuthContext';
 import type { User } from './auth/types';
+import { LanguageProvider } from './i18n/LanguageProvider';
 
 // Extra providers from your admin & accessibility work
 import { AdminAuthProvider } from './admin/AdminAuthContext';
@@ -18,7 +24,7 @@ import type { AdminUser } from './types/admin';
 
 type ProvidersProps = {
   children: ReactNode;
-  router?: Partial<MemoryRouterProps>;
+  router?: (Partial<MemoryRouterProps> & { withRoutes?: boolean }) | undefined;
   /** If you pass a user, we simulate logged-in state via localStorage */
   auth?: { user?: User | { id: string; name: string } | null };
   /** Optional admin context seed */
@@ -26,7 +32,8 @@ type ProvidersProps = {
 };
 
 export function Providers({ children, router, auth, admin }: ProvidersProps) {
-  const initialEntries = router?.initialEntries ?? ['/'];
+  const { withRoutes, ...routerProps } = router ?? {};
+  const initialEntries = routerProps.initialEntries ?? ['/'];
 
   // Seed localStorage so AuthProvider hydrates
   if (auth?.user) {
@@ -44,6 +51,7 @@ export function Providers({ children, router, auth, admin }: ProvidersProps) {
   localStorage.removeItem('support-atlas:preferences:large-text-mode');
   localStorage.removeItem('support-atlas:preferences:reduced-motion-mode');
   localStorage.removeItem('support-atlas:preferences:screen-reader-mode');
+  localStorage.removeItem('support-atlas.language');
 
   if (typeof document !== 'undefined') {
     const root = document.documentElement;
@@ -67,7 +75,17 @@ export function Providers({ children, router, auth, admin }: ProvidersProps) {
                     hydrateOnMount={false}
                     initialState={admin ?? { admin: null, loading: false, error: null }}
                   >
-                    <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+                    <LanguageProvider>
+                      <MemoryRouter {...routerProps} initialEntries={initialEntries}>
+                        {withRoutes ? (
+                          <Routes>
+                            <Route path="*" element={children} />
+                          </Routes>
+                        ) : (
+                          children
+                        )}
+                      </MemoryRouter>
+                    </LanguageProvider>
                   </AdminAuthProvider>
                 </AuthProvider>
               </DyslexicModeProvider>

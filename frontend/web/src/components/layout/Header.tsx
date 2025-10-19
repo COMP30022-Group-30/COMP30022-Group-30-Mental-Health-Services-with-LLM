@@ -3,10 +3,13 @@ import { NavLink } from 'react-router-dom';
 import Container from './Container';
 import { useAuth } from '@/auth/AuthContext';
 import { useScreenReaderMode } from '@/accessibility/ScreenReaderModeContext';
+import { useLanguage } from '@/i18n/LanguageProvider';
+import LanguageSwitcher from '@/i18n/LanguageSwitcher';
 
 export default function Header() {
   const { user, loading, signOut } = useAuth();
   const { screenReaderAssist } = useScreenReaderMode();
+  const { t } = useLanguage();
 
   const initials = useMemo(() => {
     const source = user?.name ?? user?.email ?? '';
@@ -29,7 +32,7 @@ export default function Header() {
   return (
     <header className="header">
       <Container>
-        <a href="#main" className="skip-link">Skip to main content</a>
+        <a href="#main" className="skip-link">{t('header.skipLink')}</a>
         <div className="header-inner">
           <a href="/" className="brand" aria-label="Support Atlas home">
             <span aria-hidden className="logo">SA</span>
@@ -39,38 +42,40 @@ export default function Header() {
           <div className="header-right">
             {screenReaderAssist && (
               <p className="sr-only" aria-live="polite">
-                Screen reader assist mode is on. Use the skip link and landmarks to jump between sections.
+                {t('header.screenReader')}
               </p>
             )}
             <nav
               className="nav"
-              aria-label={screenReaderAssist ? 'Primary navigation — Support Atlas main sections' : 'Primary'}
+              aria-label={screenReaderAssist ? t('header.nav.ariaPrimaryLong') : t('header.nav.ariaPrimaryShort')}
             >
               <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : undefined)}>
-                Home
+                {t('header.nav.home')}
               </NavLink>
               <NavLink
                 to="/chat"
                 data-easy-mode="priority"
                 className={({ isActive }) => (isActive ? 'active' : undefined)}
               >
-                Chat
+                {t('header.nav.chat')}
               </NavLink>
               {/* Removed Services; add in-page anchors for Help & Crisis and FAQ */}
-              <a href="/#help-crisis" data-easy-mode="priority">Help &amp; Crisis</a>
-              <a href="/#faq" data-easy-mode="hide">FAQ</a>
+              <a href="/#help-crisis" data-easy-mode="priority">{t('header.nav.helpCrisis')}</a>
+              <a href="/#faq" data-easy-mode="hide">{t('header.nav.faq')}</a>
             </nav>
+
+            <LanguageSwitcher />
 
             <NavLink
               to="/accessibility"
               className={({ isActive }) => (isActive ? 'accessibility-trigger active' : 'accessibility-trigger')}
             >
-              <span className="accessibility-trigger-label">Accessibility</span>
+              <span className="accessibility-trigger-label">{t('header.nav.accessibility')}</span>
             </NavLink>
 
-            <div className="auth-actions" aria-label="Account actions">
+            <div className="auth-actions" aria-label={t('header.nav.accountActions')}>
               {loading ? (
-                <span className="auth-status" aria-live="polite">Loading…</span>
+                <span className="auth-status" aria-live="polite">{t('header.nav.loading')}</span>
               ) : user ? (
                 <>
                   <NavLink
@@ -88,12 +93,12 @@ export default function Header() {
                     </span>
                   </NavLink>
                   <button type="button" className="btn btn-link auth-signout" onClick={handleSignOut}>
-                    Sign out
+                    {t('header.nav.signOut')}
                   </button>
                 </>
               ) : (
                 <NavLink to="/login" className="btn btn-secondary">
-                  Sign in
+                  {t('header.nav.signIn')}
                 </NavLink>
               )}
             </div>

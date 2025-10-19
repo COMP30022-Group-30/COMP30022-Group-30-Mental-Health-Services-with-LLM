@@ -149,6 +149,20 @@ before update on public.services
 for each row
 execute function public.touch_updated_at();
 
+create table if not exists public.legal_acceptances (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  terms_version text not null,
+  privacy_version text not null,
+  accepted_at timestamptz not null default timezone('utc', now()),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create trigger trg_legal_acceptances_updated
+before update on public.legal_acceptances
+for each row
+execute function public.touch_updated_at();
+
 create or replace function public.current_admin_role()
 returns text
 language sql
@@ -312,6 +326,7 @@ alter table public.admin_profiles enable row level security;
 alter table public.provider_profiles enable row level security;
 alter table public.service_categories enable row level security;
 alter table public.services enable row level security;
+alter table public.legal_acceptances enable row level security;
 
 create policy admin_select_admin_profiles
 on public.admin_profiles
@@ -344,6 +359,22 @@ on public.services
 for all
 using (public.current_admin_role() in ('moderator', 'admin', 'super_admin') or auth.role() = 'service_role')
 with check (public.current_admin_role() in ('moderator', 'admin', 'super_admin') or auth.role() = 'service_role');
+
+create policy legal_acceptances_select
+on public.legal_acceptances
+for select
+using (auth.uid() = user_id or auth.role() = 'service_role');
+
+create policy legal_acceptances_insert
+on public.legal_acceptances
+for insert
+with check (auth.uid() = user_id or auth.role() = 'service_role');
+
+create policy legal_acceptances_update
+on public.legal_acceptances
+for update
+using (auth.uid() = user_id or auth.role() = 'service_role')
+with check (auth.uid() = user_id or auth.role() = 'service_role');
 
 -- Allow read access for signed-in admins on the convenience views.
 grant usage on schema public to anon, authenticated, service_role;

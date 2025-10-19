@@ -25,6 +25,21 @@
 .nav a.active, .nav a[aria-current="page"] { background: var(--surface-alt); }
 
 .header-right{ display:flex; align-items:center; gap: var(--space-4); }
+.language-switcher{ display:inline-flex; align-items:center; }
+.language-switcher select{
+  appearance:none;
+  padding:10px 12px;
+  border-radius: var(--radius-md);
+  border:1px solid var(--grey-300);
+  background: var(--surface);
+  color: var(--text);
+  font-weight:600;
+  cursor:pointer;
+}
+.language-switcher select:focus-visible{
+  outline:2px solid var(--focus);
+  outline-offset:2px;
+}
 .auth-actions{ display:flex; align-items:center; gap: var(--space-3); }
 .auth-status{ color: var(--muted); font-size: .9rem; }
 .accessibility-trigger{

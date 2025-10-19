@@ -10,6 +10,7 @@ import { ScreenReaderModeProvider } from '@/accessibility/ScreenReaderModeContex
 import { LargeTextModeProvider } from '@/accessibility/LargeTextModeContext';
 import { ReducedMotionModeProvider } from '@/accessibility/ReducedMotionModeContext';
 import App from './App';
+import { LanguageProvider } from '@/i18n/LanguageProvider';
 import '@/styles/index.css';
 import '@/styles/tokens.css';
 
@@ -24,7 +25,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <DyslexicModeProvider>
                   <AuthProvider>
                     <AdminAuthProvider>
-                      <App />
+                      <LanguageProvider>
+                        <App />
+                      </LanguageProvider>
                     </AdminAuthProvider>
                   </AuthProvider>
                 </DyslexicModeProvider>

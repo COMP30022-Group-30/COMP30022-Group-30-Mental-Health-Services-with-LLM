@@ -137,8 +137,104 @@
 }
 @keyframes pulse{ 0%{transform:scale(.95)} 70%{transform:scale(1.05); opacity:.2} 100%{transform:scale(.95); opacity:.6} }
 
+.virtual-keyboard{
+  grid-column: 1 / -1;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:6px;
+}
+.virtual-keyboard-hint{
+  margin:0;
+  font-size:.85rem;
+  color: var(--grey-600);
+}
+.virtual-keyboard-keys{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.vk-key{
+  min-width:36px;
+  padding:6px 10px;
+  border-radius: var(--radius-sm);
+  border:1px solid var(--grey-300);
+  background: var(--surface-alt);
+  font-size:1.05rem;
+  cursor:pointer;
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.vk-key:hover{ background: var(--surface); transform: translateY(-1px); }
+.vk-key:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
 /* Inline icon in bubble meta */
 .icon-inline{
   margin-left:8px; padding:2px 6px; border:1px solid var(--grey-300);
   border-radius:10px; background:var(--surface); cursor:pointer; font-size:12px;
+}
+
+/* --- Agreements modal --- */
+.chat-agreements-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(17,24,39,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  z-index:1000;
+}
+.chat-agreements-modal{
+  width:min(720px, 100%);
+  max-height:100%;
+  overflow:auto;
+  background:var(--surface);
+  border-radius:var(--radius-xl, 18px);
+  box-shadow:0 22px 60px rgba(15,23,42,.25);
+  border:1px solid var(--grey-300);
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.chat-agreements-content{
+  display:grid;
+  gap:18px;
+}
+.chat-agreements-scroll{
+  max-height:45vh;
+  overflow:auto;
+  padding-right:6px;
+  display:grid;
+  gap:18px;
+}
+.chat-agreements-section{
+  border:1px solid var(--grey-200);
+  border-radius:var(--radius-lg);
+  padding:16px;
+  background:var(--surface-alt, #f9fafb);
+}
+.chat-agreements-section h3{
+  margin-top:0;
+  margin-bottom:8px;
+}
+.chat-agreements-checklist{
+  display:grid;
+  gap:10px;
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+.chat-agreements-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.chat-agreements-error{
+  border:1px solid var(--warning-300, #f2b27b);
+  background:var(--warning-50, #fff7ed);
+  color:var(--warning-900, #7c3e1d);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
 }

@@ -1,5 +1,6 @@
 // Chat page
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Title from '@/components/misc/Title';
 import MessageList, { Message } from '@/components/chat/MessageList';
 import MessageInput from '@/components/chat/MessageInput';
@@ -15,7 +16,16 @@ import {
 } from '@/features/chat/sessionStore';
 import ChatList from '@/components/chat/ChatList';
 import { sendMessageToAPI } from '@/api/chat';
+import AgreementsModal from '@/components/chat/AgreementsModal';
+import {
+  acceptAgreements,
+  fetchAgreementStatus,
+  type AgreementStatus,
+  AGREEMENT_TERMS_VERSION,
+  AGREEMENT_PRIVACY_VERSION,
+} from '@/api/agreements';
 import '@/styles/pages/chat.css';
+import { useLanguage } from '@/i18n/LanguageProvider';
 
 type ChatMessageStore = { id: string; role: 'user' | 'assistant'; text: string; at: number };
 
@@ -29,16 +39,27 @@ function toStore(items: Message[], prev?: ChatMessageStore[]): ChatMessageStore[
   const prevMap = new Map(prev?.map((m) => [m.id, m.at]));
   return items.map((m) => ({ id: m.id, role: m.role, text: m.text, at: prevMap.get(m.id) ?? now }));
 }
-function relative(ms: number) {
-  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
-  if (s < 10) return 'just now';
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
+function formatRelativeTime(ms: number, locale: string) {
+  const diffSeconds = Math.round((Date.now() - ms) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+  if (Math.abs(diffSeconds) < 60) {
+    const value = diffSeconds === 0 ? -1 : -diffSeconds;
+    return rtf.format(value, 'second');
+  }
+
+  const diffMinutes = Math.round(diffSeconds / 60);
+  if (Math.abs(diffMinutes) < 60) {
+    return rtf.format(-diffMinutes, 'minute');
+  }
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (Math.abs(diffHours) < 24) {
+    return rtf.format(-diffHours, 'hour');
+  }
+
+  const diffDays = Math.round(diffHours / 24);
+  return rtf.format(-diffDays, 'day');
 }
 
 function useAtBottom(ref: React.RefObject<HTMLDivElement>, threshold = 64) {
@@ -61,6 +82,8 @@ function useAtBottom(ref: React.RefObject<HTMLDivElement>, threshold = 64) {
 export default function Chat() {
   const { user } = useAuth();
   const { easyMode } = useEasyMode();
+  const navigate = useNavigate();
+  const { language, locale, t } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(() => !easyMode);
 
   // Refs
@@ -73,6 +96,70 @@ export default function Chat() {
   const [busy, setBusy] = useState(false);
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
   const [netErr, setNetErr] = useState<string | null>(null);
+  const [agreementStatus, setAgreementStatus] = useState<AgreementStatus | null>(null);
+  const [agreementsLoading, setAgreementsLoading] = useState(true);
+  const [agreementsError, setAgreementsError] = useState<string | null>(null);
+  const [showAgreementsModal, setShowAgreementsModal] = useState(true);
+  const [savingAgreement, setSavingAgreement] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadStatus = async () => {
+      setAgreementsLoading(true);
+      setAgreementsError(null);
+      try {
+        const status = await fetchAgreementStatus(user?.id ? String(user.id) : undefined);
+        if (!active) return;
+        setAgreementStatus(status);
+        setShowAgreementsModal(status.requiresAcceptance || !user);
+      } catch (error) {
+        if (!active) return;
+        setAgreementsError('We could not load the latest terms. Please try again.');
+        setShowAgreementsModal(true);
+      } finally {
+        if (active) setAgreementsLoading(false);
+      }
+    };
+
+    loadStatus();
+    return () => {
+      active = false;
+    };
+  }, [user?.id, Boolean(user)]);
+
+  const handleAcceptAgreements = async () => {
+    if (!user?.id) {
+      setAgreementStatus((prev) => prev
+        ? { ...prev, termsAccepted: true, privacyAccepted: true, requiresAcceptance: false }
+        : {
+            termsVersion: AGREEMENT_TERMS_VERSION,
+            privacyVersion: AGREEMENT_PRIVACY_VERSION,
+            termsAccepted: true,
+            privacyAccepted: true,
+            requiresAcceptance: false,
+          });
+      setAgreementsError(null);
+      setShowAgreementsModal(false);
+      return;
+    }
+
+    setSavingAgreement(true);
+    setAgreementsError(null);
+    try {
+      const updated = await acceptAgreements(String(user.id));
+      setAgreementStatus(updated);
+      setShowAgreementsModal(updated.requiresAcceptance);
+    } catch (error) {
+      setAgreementsError('We could not save your acceptance. Please try again.');
+    } finally {
+      setSavingAgreement(false);
+    }
+  };
+
+  const handleDeclineAgreements = () => {
+    navigate('/');
+  };
 
   // initial load
   useEffect(() => {
@@ -85,10 +172,10 @@ export default function Chat() {
       const maxAt = Math.max(...session.messages.map((m: ChatMsgStore) => Number(m.at) || 0));
       setLastActivity(Number.isFinite(maxAt) ? maxAt : Date.now());
     } else {
-      setMessages([{ id: mkId(), role: 'assistant', text: 'Hi! How can I help you today?' }]);
+      setMessages([{ id: mkId(), role: 'assistant', text: t('chat.initialMessage') }]);
       setLastActivity(Date.now());
     }
-  }, [user?.id]);
+  }, [t, user?.id]);
 
   useEffect(() => {
     setSidebarOpen(easyMode ? false : true);
@@ -108,22 +195,23 @@ export default function Chat() {
   useEffect(() => { if (atBottom) scrollToBottom(); }, [messages.length, atBottom, scrollToBottom]);
 
   const onSend = async (text: string) => {
+    if (agreementsLoading || showAgreementsModal) return;
     setNetErr(null);
     const userMsg: Message = { id: mkId(), role: 'user', text };
     setMessages((prev) => [...prev, userMsg]);
     setBusy(true);
     try {
-      const reply = await sendMessageToAPI(text, user?.id ?? null);
+      const reply = await sendMessageToAPI(text, user?.id ?? null, language);
       setMessages((prev) => [...prev, { id: mkId(), role: 'assistant', text: reply.response }]);
     } catch {
-      setNetErr('Network error — please try again.');
-      setMessages((prev) => [...prev, { id: mkId(), role: 'assistant', text: 'Sorry, something went wrong.' }]);
+      setNetErr(t('chat.errors.network'));
+      setMessages((prev) => [...prev, { id: mkId(), role: 'assistant', text: t('chat.errors.generic') }]);
     } finally {
       setBusy(false);
     }
   };
 
-  const lastActivityLabel = useMemo(() => relative(lastActivity), [lastActivity]);
+  const lastActivityLabel = useMemo(() => formatRelativeTime(lastActivity, locale), [lastActivity, locale]);
 
   // === Fit the page grid to the viewport from its actual top (so composer is visible at 100% zoom)
   useEffect(() => {
@@ -178,13 +266,13 @@ export default function Chat() {
 
   return (
     <>
-      <Title value="Support Atlas — Chat" />
+      <Title value={t('chat.metaTitle')} />
 
       {/* Signed-out banner */}
       {!user && (
-        <div className="anon-banner" role="note" aria-live="polite" data-easy-mode="hide">
-          <span>You’re chatting <strong>anonymously</strong>. Sign in to save your conversation for later.</span>
-          <a className="btn btn-secondary" href="/login">Sign in</a>
+        <div className="anon-banner" role="note" aria-live="polite" aria-label={t('chat.banner.aria')} data-easy-mode="hide">
+          <span>{t('chat.anonBanner')}</span>
+          <a className="btn btn-secondary" href="/login">{t('chat.banner.button')}</a>
         </div>
       )}
 
@@ -194,22 +282,22 @@ export default function Chat() {
         {sidebarOpen ? (
           <aside className="chat-sidebar">
             <header className="sidebar-head">
-              <h2 className="h3" style={{ margin: 0 }}>Conversations</h2>
-              <button className="icon-btn" aria-label="Hide conversations" onClick={() => setSidebarOpen(false)}>×</button>
+              <h2 className="h3" style={{ margin: 0 }}>{t('chat.sidebar.title')}</h2>
+              <button className="icon-btn" aria-label={t('chat.sidebar.hide')} onClick={() => setSidebarOpen(false)}>×</button>
             </header>
             <div className="sidebar-body">
               <ChatList />
             </div>
           </aside>
         ) : (
-          <button className="hambtn" aria-label="Open chat history" onClick={() => setSidebarOpen(true)}>☰</button>
+          <button className="hambtn" aria-label={t('chat.sidebar.open')} onClick={() => setSidebarOpen(true)}>☰</button>
         )}
 
         {/* Main chat panel (no composer here) */}
         <section className="chat-main">
           <header className="chat-head">
-            <h2 className="h2" style={{ margin: 0 }}>Chat</h2>
-            <span className="muted small">Last activity {lastActivityLabel}</span>
+            <h2 className="h2" style={{ margin: 0 }}>{t('chat.heading')}</h2>
+            <span className="muted small">{t('chat.lastActivity')} {lastActivityLabel}</span>
           </header>
 
           {netErr && (
@@ -218,7 +306,7 @@ export default function Chat() {
               <button
                 type="button"
                 className="alert-dismiss"
-                aria-label="Dismiss alert"
+                aria-label={t('chat.alert.dismiss')}
                 onClick={() => setNetErr(null)}
               >
                 ×
@@ -231,7 +319,7 @@ export default function Chat() {
             <div className="chat-body">
               <MessageList items={messages} />
               {busy && (
-                <div className="typing-row" aria-live="polite" aria-label="Assistant is typing">
+                <div className="typing-row" aria-live="polite" aria-label={t('chat.typing')}>
                   <div className="typing-bubble">
                     <span className="typing-dot" />
                     <span className="typing-dot" />
@@ -242,16 +330,26 @@ export default function Chat() {
             </div>
 
             {!atBottom && (
-              <button className="jump-latest" onClick={scrollToBottom}>Jump to latest</button>
+              <button className="jump-latest" onClick={scrollToBottom}>{t('chat.jumpToLatest')}</button>
             )}
           </div>
         </section>
 
         {/* Composer dock — separate row pinned at grid bottom */}
         <div className="composer-dock">
-          <MessageInput onSend={onSend} disabled={busy} />
+          <MessageInput onSend={onSend} disabled={busy || agreementsLoading || showAgreementsModal} />
         </div>
       </div>
+
+      <AgreementsModal
+        open={showAgreementsModal}
+        loading={agreementsLoading || savingAgreement}
+        error={agreementsError}
+        repeatRequired={!user}
+        versions={{ termsVersion: agreementStatus?.termsVersion, privacyVersion: agreementStatus?.privacyVersion }}
+        onAccept={handleAcceptAgreements}
+        onCancel={handleDeclineAgreements}
+      />
     </>
   );
 }
