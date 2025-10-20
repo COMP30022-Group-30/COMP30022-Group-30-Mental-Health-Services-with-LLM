@@ -7,11 +7,18 @@ import yaml
 import os
 from pathlib import Path
 
+from langchain.agents import create_sql_agent
+from langchain.agents.agent_toolkits import SQLDatabaseToolkit
+from langchain.agents.agent_types import AgentType
+from langchain.sql_database import SQLDatabase
+from langchain_openai import ChatOpenAI
 import structlog
 
 from ...app.config import get_settings
 from ...core.llm.openai_client import get_chat_llm
 from ...core.database.supabase_only import get_supabase_db
+from ...services.intent_router import detect_intent
+from ...services.flows.service_creation import build_service_form_prompt
 
 logger = structlog.get_logger(__name__)
 
@@ -159,6 +166,19 @@ Always prioritize user safety and well-being in your responses.
     async def query(self, user_question: str) -> Dict[str, Any]:
         """Process a user question and return results."""
         try:
+            intent = detect_intent(user_question)
+            logger.info("Detected intent", intent=intent, question=user_question)
+            if intent == "add_service":
+                prompt = build_service_form_prompt()
+                return {
+                    "status": "success",
+                    "user_question": user_question,
+                    "response": prompt["message"],
+                    "raw_results": [],
+                    "result_count": 0,
+                    "action": prompt["action"],
+                }
+
             # Get agent and database connection
             agent = await self.create_agent()
             supabase_db = await get_supabase_db()

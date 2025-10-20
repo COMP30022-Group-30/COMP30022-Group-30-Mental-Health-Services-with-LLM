@@ -1,9 +1,11 @@
 # Backened/chat/views.py
 
 from django.conf import settings
+from pydantic import ValidationError
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 
 import asyncio
 import httpx
@@ -11,6 +13,7 @@ import httpx
 from .models import ChatSession, Message  # noqa: F401 (Message kept for future use)
 from .serializers import ChatSessionSerializer
 from llm.services.chat_service import chat_service
+from llm.services.flows.service_creation import submit_service_form
 from llm.utils.translation import (
     DEFAULT_LANGUAGE,
     SUPPORTED_LANGUAGES,
@@ -42,6 +45,9 @@ class ChatMessageAPIView(APIView):
       - Passing "use_fastapi": true in the request payload (optionally with "fastapi_url").
     """
 
+    permission_classes = [AllowAny]
+    authentication_classes: list = []
+
     def post(self, request, *args, **kwargs):
         payload = request.data
         user_message = payload.get("message")
@@ -50,20 +56,19 @@ class ChatMessageAPIView(APIView):
         # --- (1) Service form: keep original behavior exactly ---
         if payload.get("type") == "service_form":
             try:
-                llm_response = asyncio.run(
-                    chat_service.process_message(
-                        payload,  # special token & full payload for form
-                        session_id=session_id,
-                    )
-                )
+                form_payload = payload.get("data") or payload
+                cleaned = asyncio.run(submit_service_form(form_payload, session_id=session_id))
                 return Response(
                     {
-                        "response": llm_response.get("message"),
-                        "session_id": llm_response.get("session_id"),
-                        "action": llm_response.get("action"),
+                        "response": "Thanks for submitting the service details. We'll review them and reach out if we "
+                        "need anything else.",
+                        "session_id": session_id,
+                        "data": cleaned,
                     },
-                    status=status.HTTP_200_OK,
+                    status=status.HTTP_201_CREATED,
                 )
+            except ValidationError as exc:
+                return Response({"errors": exc.errors()}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -163,3 +168,27 @@ class ChatMessageAPIView(APIView):
             )
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ServiceDraftAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes: list = []
+
+    def post(self, request, *args, **kwargs):
+        form_payload = request.data.get("data") or request.data
+        session_id = request.data.get("session_id")
+
+        try:
+            cleaned = asyncio.run(submit_service_form(form_payload, session_id=session_id))
+        except ValidationError as exc:
+            return Response({"errors": exc.errors()}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:  # noqa: BLE001
+            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(
+            {
+                "message": "Thanks for submitting the service details. Our team will review them shortly.",
+                "data": cleaned,
+            },
+            status=status.HTTP_201_CREATED,
+        )

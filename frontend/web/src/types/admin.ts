@@ -77,6 +77,35 @@ export type Service = {
   updated_at: string;
 };
 
+export type ServiceSubmission = {
+  id: string;
+  session_id?: string | null;
+  submitted_at: string;
+  service_name: string;
+  organisation_name: string;
+  campus_name: string;
+  region_name: string;
+  service_types: string[];
+  delivery_method: string;
+  level_of_care: string;
+  address: string;
+  suburb: string;
+  state: string;
+  postcode: string;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  referral_pathway: string;
+  cost: string;
+  target_populations: string[];
+  expected_wait_time?: string | null;
+  notes?: string | null;
+  opening_hours_24_7: boolean;
+  opening_hours_standard: boolean;
+  opening_hours_extended: boolean;
+  op_hours_extended_details?: string | null;
+};
+
 export type Paginated<T> = {
   count: number;
   next: string | null;

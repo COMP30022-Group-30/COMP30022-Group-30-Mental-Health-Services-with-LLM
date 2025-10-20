@@ -6,6 +6,8 @@ from typing import Any, Dict
 import structlog
 from core.llm.openai_client import get_chat_llm
 from core.database.supabase_only import get_supabase_db
+from llm.services.intent_router import detect_intent
+from llm.services.flows.service_creation import build_service_form_prompt
 
 logger = structlog.get_logger(__name__)
 
@@ -84,6 +86,19 @@ class SimpleTestAgent:
     async def simple_query(self, user_message: str) -> Dict[str, Any]:
         """Process a simple query without complex logic."""
         try:
+            intent = detect_intent(user_message)
+            logger.info("Detected intent", intent=intent, message=user_message)
+
+            if intent == "add_service":
+                prompt = build_service_form_prompt()
+                return {
+                    "status": "success",
+                    "message": prompt["message"],
+                    "services_found": 0,
+                    "raw_results": [],
+                    "action": prompt["action"],
+                }
+
             # Step 1: Get components
             llm = get_chat_llm()
             db = await get_supabase_db()

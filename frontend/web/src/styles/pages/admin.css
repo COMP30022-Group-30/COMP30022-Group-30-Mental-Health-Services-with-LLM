@@ -171,6 +171,39 @@ td {
   cursor: not-allowed;
 }
 
+.service-submissions {
+  margin-bottom: 32px;
+}
+
+.service-submissions .table-wrapper {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.service-submissions tr.is-active {
+  background: var(--highlight-soft);
+}
+
+.service-form .alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--surface-subtle-alt, #d4d4d8);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  margin-bottom: 16px;
+}
+
+.service-form .alert.info {
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(79, 70, 229, 0.24);
+}
+
+.service-form .alert button {
+  margin-left: auto;
+}
+
 .success {
   color: var(--success, #0f766e);
   font-weight: 600;

@@ -16,7 +16,9 @@ import {
 } from '@/features/chat/sessionStore';
 import ChatList from '@/components/chat/ChatList';
 import { sendMessageToAPI } from '@/api/chat';
+import { submitServiceDraft } from '@/api/serviceDraft';
 import AgreementsModal from '@/components/chat/AgreementsModal';
+import ServiceFormModal, { type ServiceFormAction } from '@/components/chat/ServiceFormModal';
 import {
   acceptAgreements,
   fetchAgreementStatus,
@@ -96,6 +98,11 @@ export default function Chat() {
   const [busy, setBusy] = useState(false);
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
   const [netErr, setNetErr] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [serviceAction, setServiceAction] = useState<ServiceFormAction | null>(null);
+  const [serviceFormOpen, setServiceFormOpen] = useState(false);
+  const [serviceFormSubmitting, setServiceFormSubmitting] = useState(false);
+  const [serviceFormError, setServiceFormError] = useState<string | null>(null);
   const [agreementStatus, setAgreementStatus] = useState<AgreementStatus | null>(null);
   const [agreementsLoading, setAgreementsLoading] = useState(true);
   const [agreementsError, setAgreementsError] = useState<string | null>(null);
@@ -167,6 +174,10 @@ export default function Chat() {
       ? loadUserChat(String(user.id)) ?? loadPreloginChat()
       : loadPreloginChat();
 
+    setSessionId(null);
+    setServiceAction(null);
+    setServiceFormOpen(false);
+
     if (session?.messages?.length) {
       setMessages(toUI(session.messages as unknown as ChatMessageStore[]));
       const maxAt = Math.max(...session.messages.map((m: ChatMsgStore) => Number(m.at) || 0));
@@ -201,13 +212,64 @@ export default function Chat() {
     setMessages((prev) => [...prev, userMsg]);
     setBusy(true);
     try {
-      const reply = await sendMessageToAPI(text, user?.id ?? null, language);
+      const reply = await sendMessageToAPI(text, sessionId, language);
+      if (reply.session_id) setSessionId(reply.session_id);
       setMessages((prev) => [...prev, { id: mkId(), role: 'assistant', text: reply.response }]);
+      const action = reply.action as ServiceFormAction | undefined;
+      if (action && action.type === 'collect_service_details') {
+        setServiceAction(action);
+        setServiceFormError(null);
+        setServiceFormOpen(true);
+      } else {
+        setServiceAction(null);
+      }
     } catch {
       setNetErr(t('chat.errors.network'));
       setMessages((prev) => [...prev, { id: mkId(), role: 'assistant', text: t('chat.errors.generic') }]);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleServiceFormClose = () => {
+    setServiceFormOpen(false);
+    setServiceFormError(null);
+  };
+
+  const handleServiceFormSubmit = async (formValues: Record<string, unknown>) => {
+    if (!serviceAction) return;
+    setServiceFormSubmitting(true);
+    setServiceFormError(null);
+
+    try {
+      const response = await submitServiceDraft(formValues, sessionId);
+      const responseData = (response.data ?? {}) as Record<string, unknown>;
+      const serviceNameValue = responseData.service_name;
+      const serviceName =
+        typeof serviceNameValue === 'string' && serviceNameValue.trim().length
+          ? serviceNameValue
+          : null;
+
+      const userSummary = serviceName
+        ? `Submitted details for ${serviceName}.`
+        : 'Submitted new service details.';
+
+      setMessages((prev) => [
+        ...prev,
+        { id: mkId(), role: 'user', text: userSummary },
+        { id: mkId(), role: 'assistant', text: response.message },
+      ]);
+
+      setServiceFormOpen(false);
+      setServiceAction(null);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : t('chat.errors.generic');
+      setServiceFormError(message);
+    } finally {
+      setServiceFormSubmitting(false);
     }
   };
 
@@ -349,6 +411,14 @@ export default function Chat() {
         versions={{ termsVersion: agreementStatus?.termsVersion, privacyVersion: agreementStatus?.privacyVersion }}
         onAccept={handleAcceptAgreements}
         onCancel={handleDeclineAgreements}
+      />
+      <ServiceFormModal
+        open={serviceFormOpen}
+        action={serviceAction}
+        submitting={serviceFormSubmitting}
+        error={serviceFormError}
+        onClose={handleServiceFormClose}
+        onSubmit={handleServiceFormSubmit}
       />
     </>
   );

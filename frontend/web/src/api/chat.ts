@@ -7,15 +7,7 @@ export interface ChatSession {
   // add more fields if your API returns them
 }
 
-const RAW_BASE =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CHAT_API_BASE) ||
-  'http://mental-health-prod-v2.eba-cxhtfs2h.us-east-1.elasticbeanstalk.com';
-
-export const CHAT_API_BASE = RAW_BASE.replace(/\/$/, '');
-
-const CHAT_API_URL = `${CHAT_API_BASE}/chat/chat-sessions/`;
-const CHAT_MESSAGE_URL = `${CHAT_API_BASE}/chat/chat-message/`;
-
+const CHAT_API_URL = 'http://localhost:8000/chat/chat-sessions/';
 
 export async function fetchChatSessions(): Promise<ChatSession[]> {
   const response = await fetch(CHAT_API_URL, {
@@ -35,20 +27,29 @@ export interface ChatReply {
   response: string;
   session_id: string | null;
   language?: string;
+  action?: Record<string, unknown>;
 }
 
-export async function sendMessageToAPI(message: string, sessionId: string | null, language: string): Promise<ChatReply> {
+const CHAT_MESSAGE_URL = 'http://localhost:8000/chat/chat-message/';
+
+export async function sendMessageToAPI(
+  message: string,
+  sessionId: string | null,
+  language?: string,
+): Promise<ChatReply> {
+  const payload: Record<string, unknown> = {
+    message,
+    session_id: sessionId,
+  };
+  if (language) payload.language = language;
+
   const response = await fetch(CHAT_MESSAGE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({
-      message,
-      session_id: sessionId,
-      language,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

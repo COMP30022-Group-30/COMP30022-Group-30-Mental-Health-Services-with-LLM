@@ -5,6 +5,7 @@ import type {
   ProviderProfile,
   Service,
   ServiceCategory,
+  ServiceSubmission,
   AdminProfile,
 } from '@/types/admin';
 import { getSupabaseClient } from '@/auth/supabaseClient';
@@ -72,6 +73,35 @@ type ServiceRow = {
   category: ServiceCategory | null;
 };
 
+type ServiceSubmissionRow = {
+  id: string;
+  session_id: string | null;
+  submitted_at: string;
+  service_name: string;
+  organisation_name: string;
+  campus_name: string;
+  region_name: string;
+  service_type: string | string[] | null;
+  delivery_method: string;
+  level_of_care: string;
+  address: string;
+  suburb: string;
+  state: string;
+  postcode: string;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  referral_pathway: string;
+  cost: string;
+  target_population: string | string[] | null;
+  expected_wait_time: string | null;
+  notes: string | null;
+  opening_hours_24_7: boolean | null;
+  opening_hours_standard: boolean | null;
+  opening_hours_extended: boolean | null;
+  op_hours_extended_details: string | null;
+};
+
 type PaginationParams = {
   search?: string;
   status?: string;
@@ -90,6 +120,53 @@ function requireAdminClient() {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error('Supabase service client is not configured.');
   return supabase;
+}
+
+function slugify(input: unknown, fallback = 'service'): string {
+  const text = typeof input === 'string' ? input : '';
+  const base = text.trim() || fallback;
+  return base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || fallback;
+}
+
+function splitCSVValues(input: string | string[] | null): string[] {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.map((item) => String(item).trim()).filter(Boolean);
+  return String(input)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function toBoolean(value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    return ['true', '1', 't', 'y', 'yes', 'on'].includes(value.trim().toLowerCase());
+  }
+  return false;
+}
+
+async function syncLegacyServiceRow(service: Service): Promise<void> {
+  try {
+    const adminClient = requireAdminClient();
+    const { error } = await adminClient
+      .from('service')
+      .upsert(
+        {
+          service_key: service.id,
+          organisation_key: service.provider?.id ?? null,
+          service_name: service.name,
+        },
+        { onConflict: 'service_key' },
+      );
+    if (error) throw error;
+  } catch (err) {
+    console.warn('Failed to sync legacy service row', err);
+  }
 }
 
 function mapAdmin(row: AdminUserRow): AdminUser {
@@ -115,84 +192,77 @@ function mapAdmin(row: AdminUserRow): AdminUser {
   };
 }
 
+function mapServiceSubmission(row: ServiceSubmissionRow): ServiceSubmission {
+  return {
+    id: row.id,
+    session_id: row.session_id,
+    submitted_at: row.submitted_at,
+    service_name: row.service_name,
+    organisation_name: row.organisation_name,
+    campus_name: row.campus_name,
+    region_name: row.region_name,
+    service_types: splitCSVValues(row.service_type),
+    delivery_method: row.delivery_method,
+    level_of_care: row.level_of_care,
+    address: row.address,
+    suburb: row.suburb,
+    state: row.state,
+    postcode: row.postcode,
+    phone: row.phone,
+    email: row.email,
+    website: row.website,
+    referral_pathway: row.referral_pathway,
+    cost: row.cost,
+    target_populations: splitCSVValues(row.target_population),
+    expected_wait_time: row.expected_wait_time,
+    notes: row.notes,
+    opening_hours_24_7: toBoolean(row.opening_hours_24_7),
+    opening_hours_standard: toBoolean(row.opening_hours_standard),
+    opening_hours_extended: toBoolean(row.opening_hours_extended),
+    op_hours_extended_details: row.op_hours_extended_details,
+  };
+}
+
 async function fetchAdminById(id: string): Promise<AdminUser> {
   const client = requireClient();
   const { data, error } = await client
-    .from<AdminUserRow>('admin_users_view')
+    .from('admin_users_view')
     .select('*')
     .eq('id', id)
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Admin user not found.');
-  return mapAdmin(data);
+  return mapAdmin(data as AdminUserRow);
 }
 
 async function fetchProviderById(id: string): Promise<ProviderProfile> {
   const supabase = requireClient();
   const { data, error } = await supabase
-    .from<ProviderRow>('provider_profiles_view')
+    .from('provider_profiles_view')
     .select('*')
     .eq('id', id)
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Provider not found.');
   return {
-    id: data.id,
-    user: data.user,
-    display_name: data.display_name,
-    contact_email: data.contact_email,
-    phone_number: data.phone_number,
-    website: data.website,
-    description: data.description,
-    address: data.address,
-    status: data.status,
-    reviewed_by: data.reviewed_by,
-    reviewed_at: data.reviewed_at,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
+    ...(data as ProviderRow),
   };
 }
 
 async function fetchServiceById(id: string): Promise<Service> {
   const supabase = requireClient();
   const { data, error } = await supabase
-    .from<ServiceRow>('services_view')
+    .from('services_view')
     .select('*')
     .eq('id', id)
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Service not found.');
   return {
-    id: data.id,
-    name: data.name,
-    slug: data.slug,
-    summary: data.summary,
-    description: data.description,
-    status: data.status,
-    approval_notes: data.approval_notes,
-    provider_id: data.provider_id,
-    category_id: data.category_id,
-    provider: data.provider
+    ...(data as ServiceRow),
+    provider: (data as ServiceRow).provider
       ? {
-          id: data.provider.id,
-          user: data.provider.user,
-          display_name: data.provider.display_name,
-          contact_email: data.provider.contact_email,
-          phone_number: data.provider.phone_number,
-          website: data.provider.website,
-          description: data.provider.description,
-          address: data.provider.address,
-          status: data.provider.status,
-          reviewed_by: data.provider.reviewed_by,
-          reviewed_at: data.provider.reviewed_at,
-          created_at: data.provider.created_at,
-          updated_at: data.provider.updated_at,
+          ...(data as ServiceRow).provider!,
         }
       : null,
-    category: data.category,
-    created_by: data.created_by,
-    updated_by: data.updated_by,
-    approved_by: data.approved_by,
-    approved_at: data.approved_at,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
+    category: (data as ServiceRow).category,
   };
 }
 
@@ -219,12 +289,12 @@ export async function loginAdmin(payload: LoginPayload): Promise<LoginResponse> 
   if (!identifier.includes('@')) {
     const adminClient = requireAdminClient();
     const { data, error } = await adminClient
-      .from<{ email: string }>('admin_profiles')
+      .from('admin_profiles')
       .select('email')
       .eq('username', identifier)
       .single();
     if (error || !data) throw new Error('Unknown administrator username.');
-    email = data.email;
+    email = (data as { email: string }).email;
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -324,7 +394,7 @@ export async function listUsers(params: PaginationParams = {}): Promise<Paginate
   const supabase = requireClient();
   const { rangeStart, rangeEnd, page } = buildPagination(params);
   let query = supabase
-    .from<AdminUserRow>('admin_users_view')
+    .from('admin_users_view')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(rangeStart, rangeEnd);
@@ -336,7 +406,7 @@ export async function listUsers(params: PaginationParams = {}): Promise<Paginate
 
   const { data, error, count } = await query;
   if (error) throw new Error(error.message);
-  const results = (data ?? []).map(mapAdmin);
+  const results = ((data ?? []) as AdminUserRow[]).map(mapAdmin);
 
   const total = count ?? results.length;
   return {
@@ -454,7 +524,7 @@ export async function listProviders(params: PaginationParams = {}): Promise<Pagi
   const supabase = requireClient();
   const { rangeStart, rangeEnd, page } = buildPagination(params);
   let query = supabase
-    .from<ProviderRow>('provider_profiles_view')
+    .from('provider_profiles_view')
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(rangeStart, rangeEnd);
@@ -469,7 +539,7 @@ export async function listProviders(params: PaginationParams = {}): Promise<Pagi
 
   const { data, error, count } = await query;
   if (error) throw new Error(error.message);
-  const results: ProviderProfile[] = (data ?? []).map((row) => ({
+  const results: ProviderProfile[] = ((data ?? []) as ProviderRow[]).map((row) => ({
     id: row.id,
     user: row.user,
     display_name: row.display_name,
@@ -556,7 +626,7 @@ export async function listServices(params: PaginationParams = {}): Promise<Pagin
   const supabase = requireClient();
   const { rangeStart, rangeEnd, page } = buildPagination(params);
   let query = supabase
-    .from<ServiceRow>('services_view')
+    .from('services_view')
     .select('*', { count: 'exact' })
     .order('updated_at', { ascending: false })
     .range(rangeStart, rangeEnd);
@@ -574,7 +644,7 @@ export async function listServices(params: PaginationParams = {}): Promise<Pagin
 
   const { data, error, count } = await query;
   if (error) throw new Error(error.message);
-  const results: Service[] = (data ?? []).map((row) => ({
+  const results: Service[] = ((data ?? []) as ServiceRow[]).map((row) => ({
     id: row.id,
     name: row.name,
     slug: row.slug,
@@ -624,6 +694,7 @@ export async function createService(payload: Record<string, unknown>): Promise<S
   const actor = await getCurrentUserId();
   const insertPayload = {
     ...payload,
+    slug: slugify(payload?.name),
     created_by: actor,
     updated_by: actor,
   };
@@ -633,7 +704,9 @@ export async function createService(payload: Record<string, unknown>): Promise<S
     .select('*')
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Failed to create service.');
-  return fetchServiceById(data.id);
+  const service = await fetchServiceById(data.id);
+  await syncLegacyServiceRow(service);
+  return service;
 }
 
 export async function updateService(id: string, payload: Record<string, unknown>): Promise<Service> {
@@ -649,13 +722,21 @@ export async function updateService(id: string, payload: Record<string, unknown>
     .select('*')
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Failed to update service.');
-  return fetchServiceById(data.id);
+  const service = await fetchServiceById(data.id);
+  await syncLegacyServiceRow(service);
+  return service;
 }
 
 export async function deleteService(id: string): Promise<void> {
   const supabase = requireClient();
   const { error } = await supabase.from('services').delete().eq('id', id);
   if (error) throw new Error(error.message);
+  try {
+    const adminClient = requireAdminClient();
+    await adminClient.from('service').delete().eq('service_key', id);
+  } catch (err) {
+    console.warn('Failed to remove legacy service row', err);
+  }
 }
 
 export async function setServiceStatus(
@@ -681,37 +762,57 @@ export async function setServiceStatus(
   return fetchServiceById(data.id);
 }
 
+export async function listServiceSubmissionRequests(): Promise<ServiceSubmission[]> {
+  const supabase = requireAdminClient();
+  const { data, error } = await supabase
+    .from('service_submission_requests')
+    .select('*')
+    .order('submitted_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows = (data as ServiceSubmissionRow[] | null) ?? [];
+  return rows.map(mapServiceSubmission);
+}
+
+export async function deleteServiceSubmissionRequest(id: string): Promise<void> {
+  const supabase = requireAdminClient();
+  const { error } = await supabase
+    .from('service_submission_requests')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function listServiceCategories(): Promise<ServiceCategory[]> {
   const supabase = requireClient();
   const { data, error } = await supabase
-    .from<ServiceCategory>('service_categories')
+    .from('service_categories')
     .select('*')
     .order('name', { ascending: true });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data as ServiceCategory[] | null) ?? [];
 }
 
 export async function createServiceCategory(payload: Record<string, unknown>): Promise<ServiceCategory> {
   const supabase = requireClient();
   const { data, error } = await supabase
-    .from<ServiceCategory>('service_categories')
+    .from('service_categories')
     .insert(payload)
     .select('*')
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Failed to create service category.');
-  return data;
+  return data as ServiceCategory;
 }
 
 export async function updateServiceCategory(id: string, payload: Record<string, unknown>): Promise<ServiceCategory> {
   const supabase = requireClient();
   const { data, error } = await supabase
-    .from<ServiceCategory>('service_categories')
+    .from('service_categories')
     .update(payload)
     .eq('id', id)
     .select('*')
     .single();
   if (error || !data) throw new Error(error?.message ?? 'Failed to update service category.');
-  return data;
+  return data as ServiceCategory;
 }
 
 export async function deleteServiceCategory(id: string): Promise<void> {

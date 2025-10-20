@@ -4,16 +4,24 @@ Mental Health LLM Backend - Main FastAPI Application
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-
 from app.config import get_settings
-from core.database.supabase_only import get_supabase_db, SupabaseOnlyConnection
-from services.chat_service import get_chat_service
-from search_router import router as search_router # Import the search router
 
+# Import the simpler Supabase-only connection
+try:
+    from core.database.supabase_only import get_supabase_db, SupabaseOnlyConnection
+    USE_SIMPLE_DB = True
+except ImportError:
+    # Fallback to the complex connection if the simple one doesn't exist
+    from core.database.connection import get_db_connection, SupabaseConnection
+    USE_SIMPLE_DB = False
+
+# Import chat endpoints
+from api.v1.endpoints.chat import router as chat_router
+
+# Initialize settings
 settings = get_settings()
 
+# Create FastAPI app
 app = FastAPI(
     title="Mental Health LLM Backend",
     description="LLM-powered chatbot with database querying for mental health applications",
@@ -22,169 +30,119 @@ app = FastAPI(
     redoc_url=f"/redoc"
 )
 
-app.include_router(search_router)
-
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://comp-30022-group-30-mental-health-s.vercel.app",
-        "https://*.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=settings.allowed_methods_list,
+    allow_headers=settings.allowed_headers_list,
 )
+
+# Include chat routes
+app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
+
 
 @app.get("/")
 async def root():
+    """Health check endpoint."""
     return {
         "message": "Mental Health LLM Backend is running!",
         "environment": settings.environment,
+        "api_version": settings.api_version,
         "chat_available": True,
-    }
-
-@app.get("/health")
-async def health_check(db: SupabaseOnlyConnection = Depends(get_supabase_db)):
-    db_status = await db.test_connection()
-    return {
-        "status": "healthy",
-        "environment": settings.environment,
-        "openai_configured": bool(settings.openai_api_key),
-        "supabase_configured": bool(settings.supabase_url and settings.supabase_key),
-        "database": db_status
-    }
-
-class ChatRequest(BaseModel):
-    message: str
-    session_id: Optional[str] = None
-
-@app.post("/api/v1/chat/chat")
-async def chat(request: ChatRequest):
-    """Chat endpoint."""
-    chat_service = await get_chat_service()
-    result = await chat_service.process_message(
-        message=request.message,
-        session_id=request.session_id
-    )
-    return result
-
-@app.get("/debug/versions")
-async def get_versions():
-    import supabase
-    import openai
-    import fastapi
-    try:
-        import httpx
-        httpx_version = httpx.__version__
-    except:
-        httpx_version = "not installed"
-    
-    return {
-        "supabase": supabase.__version__ if hasattr(supabase, '__version__') else "unknown",
-        "openai": openai.__version__ if hasattr(openai, '__version__') else "unknown", 
-        "fastapi": fastapi.__version__ if hasattr(fastapi, '__version__') else "unknown",
-        "httpx": httpx_version,
-    }
-
-@app.get("/debug/code-version")
-async def code_version():
-    """Check which version of the code is running"""
-    return {
-        "timestamp": "2025-10-13-v6",
-        "chat_service_file": "updated_with_logging_v2",
-        "test": "New code is deployed with chat-debug endpoint"
-    }
-
-@app.get("/debug/supabase-test")
-async def test_supabase_connection():
-    """Test different ways to connect to Supabase"""
-    results = {}
-    
-    # Test 1: Check environment variables
-    results["env_vars"] = {
-        "SUPABASE_URL": bool(settings.supabase_url),
-        "SUPABASE_KEY": bool(settings.supabase_key),
-        "url_value": settings.supabase_url[:30] + "..." if settings.supabase_url else None
-    }
-    
-    # Test 2: Try creating client with minimal parameters
-    try:
-        from supabase import create_client
-        test_client = create_client(
-            supabase_url=settings.supabase_url,
-            supabase_key=settings.supabase_key
-        )
-        results["client_creation"] = "success"
-        
-        # Test 3: Try a simple query
-        try:
-            query_result = test_client.table("staging_services").select("id").limit(1).execute()
-            results["query_test"] = {
-                "status": "success",
-                "has_data": bool(query_result.data)
-            }
-        except Exception as e:
-            results["query_test"] = {
-                "status": "error",
-                "error": str(e)
-            }
-            
-    except Exception as e:
-        results["client_creation"] = {
-            "status": "error",
-            "error": str(e),
-            "error_type": type(e).__name__
+        "endpoints": {
+            "chat": "/api/v1/chat/chat",
+            "suggested_questions": "/api/v1/chat/suggested-questions",
+            "conversation_history": "/api/v1/chat/conversation/{session_id}",
+            "api_docs": "/docs"
         }
-    
-    return results
+    }
 
-@app.get("/debug/test-search")
-async def test_search(query: str = "Melbourne"):
-    """Test search functionality directly"""
-    try:
-        from core.database.supabase_only import get_supabase_db
-        db = await get_supabase_db()
-        
-        # Test the search
-        results = db.search_services_by_text(query, limit=5)
+
+if USE_SIMPLE_DB:
+    @app.get("/health")
+    async def health_check(db: SupabaseOnlyConnection = Depends(get_supabase_db)):
+        """Detailed health check using simple Supabase connection."""
+        db_status = await db.test_connection()
         
         return {
-            "query": query,
-            "results_count": len(results),
-            "results": results[:2] if results else [],
-            "search_worked": len(results) > 0
-        }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "error_type": type(e).__name__
+            "status": "healthy",
+            "environment": settings.environment,
+            "openai_configured": bool(settings.openai_api_key),
+            "supabase_configured": bool(settings.supabase_url and settings.supabase_key),
+            "database": db_status
         }
 
-@app.post("/api/v1/chat/chat-debug")
-async def chat_debug(request: ChatRequest):
-    """Debug version of chat endpoint - shows what chat service sees"""
-    from services.chat_service import get_chat_service
-    from core.database.supabase_only import get_supabase_db
+    @app.get("/database/tables")
+    async def get_database_tables(db: SupabaseOnlyConnection = Depends(get_supabase_db)):
+        """Get available database tables and schema information."""
+        tables = await db.get_available_tables()
+        schema_info = await db.get_table_schema_info()
+        
+        return {
+            "available_tables": tables,
+            "table_count": len(tables),
+            "connection_type": "supabase_rest_api",
+            "schema_info": schema_info
+        }
+
+    @app.get("/database/query/{table_name}")
+    async def query_table(table_name: str, limit: int = 10, db: SupabaseOnlyConnection = Depends(get_supabase_db)):
+        """Query a specific table (limited for safety)."""
+        data = await db.query_table(table_name, limit=limit)
+        return {
+            "table": table_name,
+            "data": data,
+            "count": len(data),
+            "limit_applied": limit
+        }
     
-    # Test 1: Direct database call in this endpoint
-    db = await get_supabase_db()
-    direct_results = db.search_services_by_text(request.message, limit=5)
+    @app.get("/database/sample-data")
+    async def get_sample_data(db: SupabaseOnlyConnection = Depends(get_supabase_db)):
+        """Get sample data from key tables to understand database content."""
+        sample_data = await db.get_service_data_sample()
+        return sample_data
     
-    # Test 2: Call through chat service
-    chat_service = await get_chat_service()
-    result = await chat_service.process_message(
-        message=request.message,
-        session_id=request.session_id
+    @app.get("/database/search")
+    async def search_services(q: str, limit: int = 10, db: SupabaseOnlyConnection = Depends(get_supabase_db)):
+        """Search for mental health services by text."""
+        results = await db.search_services_by_text(q, limit)
+        return {
+            "query": q,
+            "results": results,
+            "count": len(results)
+        }
+
+else:
+    @app.get("/health")
+    async def health_check(db: SupabaseConnection = Depends(get_db_connection)):
+        """Detailed health check using full connection."""
+        db_status = await db.test_connection()
+        
+        return {
+            "status": "healthy",
+            "environment": settings.environment,
+            "openai_configured": bool(settings.openai_api_key),
+            "supabase_configured": bool(settings.supabase_url and settings.supabase_key),
+            "database": db_status
+        }
+
+    @app.get("/database/tables")
+    async def get_database_schema(db: SupabaseConnection = Depends(get_db_connection)):
+        """Get database schema information."""
+        tables = await db.get_table_info()
+        return {
+            "tables": tables,
+            "table_count": len(tables)
+        }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.is_development
     )
-    
-    # Return comparison
-    return {
-        "direct_search_in_endpoint": {
-            "count": len(direct_results),
-            "sample": direct_results[0] if direct_results else None
-        },
-        "chat_service_result": result,
-        "mismatch": len(direct_results) > 0 and result.get("services_found", 0) == 0
-    }

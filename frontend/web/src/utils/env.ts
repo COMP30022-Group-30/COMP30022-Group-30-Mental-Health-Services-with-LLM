@@ -9,6 +9,8 @@ export type ViteEnv = {
   VITE_SUPABASE_SERVICE_KEY?: string;
   VITE_BACKEND_ORIGIN?: string;
   VITE_DJANGO_ADMIN_PATH?: string;
+  VITE_SUPABASE_STUDIO_URL?: string;
+  VITE_ADMIN_PORTAL_URL?: string;
   VITE_ADMIN_AUTH_GOOGLE?: string;
   VITE_ADMIN_AUTH_GITHUB?: string;
   VITE_ADMIN_AUTH_APPLE?: string;

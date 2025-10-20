@@ -14,4 +14,5 @@ urlpatterns = [
     # path('chat-sessions/<int:pk>/', views.ChatSessionDetailView.as_view(), name='ChatDetail'),
     path('', include(router.urls)),  
     path('chat-message/', views.ChatMessageAPIView.as_view(), name='ChatMessage'),
+    path('service-draft/', views.ServiceDraftAPIView.as_view(), name='ServiceDraft'),
 ]

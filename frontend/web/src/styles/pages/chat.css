@@ -238,3 +238,163 @@
   border-radius:var(--radius-md);
   padding:10px 12px;
 }
+
+/* --- Service form modal --- */
+.chat-service-form-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.55);
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  overflow:auto;
+  padding:32px 16px;
+  z-index:1000;
+}
+.chat-service-form{
+  width:min(760px, 100%);
+  background:var(--surface);
+  border-radius:var(--radius-xl, 18px);
+  border:1px solid var(--grey-300);
+  box-shadow:0 22px 60px rgba(15,23,42,.25);
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  padding:24px;
+}
+.chat-service-form-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+}
+.chat-service-form-head h2{
+  margin:0 0 6px;
+}
+.chat-service-form-body{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.chat-service-form-grid{
+  display:grid;
+  gap:16px;
+}
+.chat-service-form-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.chat-service-form-field label{
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.chat-service-form-field input[type="text"],
+.chat-service-form-field select,
+.chat-service-form-field textarea{
+  border:1px solid var(--grey-300);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
+  font:inherit;
+}
+.chat-service-form-field textarea{
+  min-height:84px;
+  resize:vertical;
+}
+.chat-service-form-checkbox{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  font-weight:400;
+}
+.chat-service-form-helper{
+  margin:0;
+  font-size:.9rem;
+  color:var(--grey-600);
+}
+.chat-service-form-error{
+  margin:0;
+  font-size:.9rem;
+  color:var(--warning-900, #7c3e1d);
+}
+.chat-service-form-server-error{
+  border:1px solid var(--warning-300, #f2b27b);
+  background:var(--warning-50, #fff7ed);
+  color:var(--warning-900, #7c3e1d);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
+}
+.chat-service-form-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.chat-service-form .icon-btn{
+  border:0;
+  background:transparent;
+  font-size:1rem;
+  line-height:1;
+  cursor:pointer;
+  color:var(--grey-600);
+}
+.chat-service-form .icon-btn:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+.chat-service-form .required{
+  color:var(--brand, #2563eb);
+  font-weight:700;
+}
+
+.chat-service-form-multiselect{
+  position:relative;
+}
+.chat-service-form-multiselect .multiselect-trigger{
+  width:100%;
+  border:1px solid var(--grey-300);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
+  text-align:left;
+  background:var(--surface);
+  font:inherit;
+  cursor:pointer;
+}
+.chat-service-form-multiselect .multiselect-trigger:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+.chat-service-form-multiselect .multiselect-menu{
+  position:absolute;
+  inset:calc(100% + 4px) 0 auto 0;
+  z-index:10;
+  border:1px solid var(--grey-300);
+  border-radius:var(--radius-md);
+  background:var(--surface);
+  box-shadow:0 12px 30px rgba(15,23,42,.18);
+  max-height:220px;
+  overflow:auto;
+  padding:8px;
+  display:grid;
+  gap:6px;
+}
+.chat-service-form-multiselect .multiselect-option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:400;
+}
+.chat-service-form-multiselect .multiselect-close{
+  margin-top:4px;
+  align-self:end;
+  padding:6px 10px;
+  border:1px solid var(--grey-300);
+  border-radius:var(--radius-sm);
+  background:var(--surface-alt);
+  cursor:pointer;
+}
+.chat-service-form-multiselect .multiselect-close:hover{
+  background:var(--surface);
+}

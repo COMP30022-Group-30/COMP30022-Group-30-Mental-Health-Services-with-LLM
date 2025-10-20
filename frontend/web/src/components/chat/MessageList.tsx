@@ -1,5 +1,6 @@
 // web/src/components/chat/MessageList.tsx
 import { speak } from '@/hooks/useTextToSpeech';
+import { markdownToHtml } from '@/utils/markdown';
 
 export type Message = {
   id: string;
@@ -28,7 +29,14 @@ export default function MessageList({ items }: Props) {
               </button>
             </div>
           )}
-          <div className="msg-text">{m.text}</div>
+          {m.role === 'assistant' ? (
+            <div
+              className="msg-text"
+              dangerouslySetInnerHTML={{ __html: markdownToHtml(m.text) }}
+            />
+          ) : (
+            <div className="msg-text">{m.text}</div>
+          )}
         </li>
       ))}
     </ul>

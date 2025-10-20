@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
       } else {
         await createUser({
           ...form,
-          password: form.password,
+          password: form.password ?? '',
           role: form.role,
         });
       }
@@ -190,7 +190,7 @@ export default function AdminUsersPage() {
               <span>Temporary password</span>
               <input
                 type="password"
-                value={form.password}
+                value={form.password ?? ''}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
               />

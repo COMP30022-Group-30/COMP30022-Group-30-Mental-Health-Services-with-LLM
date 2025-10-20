@@ -5,11 +5,13 @@ import {
   listProviders,
   listServiceCategories,
   listServices,
+  listServiceSubmissionRequests,
+  deleteServiceSubmissionRequest,
   setServiceStatus,
   updateService,
 } from '@/api/admin';
 import { useAdminAuth } from '@/admin/AdminAuthContext';
-import type { ProviderProfile, Service, ServiceCategory } from '@/types/admin';
+import type { ProviderProfile, Service, ServiceCategory, ServiceSubmission } from '@/types/admin';
 
 type ServiceForm = {
   name: string;
@@ -38,6 +40,8 @@ export default function AdminServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [providers, setProviders] = useState<ProviderProfile[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [submissions, setSubmissions] = useState<ServiceSubmission[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<ServiceSubmission | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Service['status'] | 'all'>('all');
@@ -45,19 +49,24 @@ export default function AdminServicesPage() {
   const [form, setForm] = useState<ServiceForm>({ ...DEFAULT_FORM });
   const [saving, setSaving] = useState(false);
 
-  const canModifyContent = admin?.profile.role !== 'moderator';
+  const role = admin?.profile.role;
+  const canApproveServices = role === 'moderator' || role === 'super_admin';
+  const canModifyContent = role !== 'moderator';
 
   const loadLists = async () => {
     setLoading(true);
     try {
-      const [svc, prov, cats] = await Promise.all([
+      const [svc, prov, cats, subs] = await Promise.all([
         listServices({ status: filter === 'all' ? undefined : filter, page_size: 50 }),
         listProviders({ status: 'approved', page_size: 100 }),
         listServiceCategories(),
+        listServiceSubmissionRequests(),
       ]);
       setServices(svc.results);
       setProviders(prov.results);
       setCategories(cats);
+      setSubmissions(subs);
+      setSelectedSubmission((prev) => (prev ? subs.find((item) => item.id === prev.id) ?? null : null));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load services');
@@ -73,11 +82,13 @@ export default function AdminServicesPage() {
 
   const resetForm = () => {
     setSelected(null);
+    setSelectedSubmission(null);
     setForm({ ...DEFAULT_FORM });
   };
 
   const startEdit = (service: Service) => {
     setSelected(service);
+    setSelectedSubmission(null);
     setForm({
       name: service.name,
       summary: service.summary ?? '',
@@ -89,9 +100,63 @@ export default function AdminServicesPage() {
     });
   };
 
+  const selectSubmission = (submission: ServiceSubmission) => {
+    const keyDetails: string[] = [
+      `Organisation: ${submission.organisation_name}`,
+      `Campus: ${submission.campus_name}`,
+      `Address: ${submission.address}, ${submission.suburb}, ${submission.state} ${submission.postcode}`,
+      `Region: ${submission.region_name}`,
+      `Service types: ${submission.service_types.join(', ') || 'Not specified'}`,
+      `Target populations: ${submission.target_populations.join(', ') || 'Not specified'}`,
+      `Delivery method: ${submission.delivery_method}`,
+      `Level of care: ${submission.level_of_care}`,
+      `Referral pathway: ${submission.referral_pathway}`,
+      `Cost: ${submission.cost}`,
+    ];
+    if (submission.expected_wait_time) keyDetails.push(`Expected wait time: ${submission.expected_wait_time}`);
+    if (submission.phone) keyDetails.push(`Phone: ${submission.phone}`);
+    if (submission.email) keyDetails.push(`Email: ${submission.email}`);
+    if (submission.website) keyDetails.push(`Website: ${submission.website}`);
+    if (submission.notes) keyDetails.push(`Notes: ${submission.notes}`);
+
+    const openingNotes: string[] = [];
+    if (submission.opening_hours_24_7) openingNotes.push('24/7');
+    if (submission.opening_hours_standard) openingNotes.push('standard hours');
+    if (submission.opening_hours_extended) {
+      openingNotes.push(
+        submission.op_hours_extended_details
+          ? `extended hours (${submission.op_hours_extended_details})`
+          : 'extended hours',
+      );
+    }
+    if (openingNotes.length) keyDetails.push(`Opening hours: ${openingNotes.join(', ')}`);
+
+    const summary = submission.notes?.slice(0, 150)
+      || submission.service_types.join(', ')
+      || `Service submission received ${new Date(submission.submitted_at).toLocaleDateString()}`;
+
+    setSelected(null);
+    setSelectedSubmission(submission);
+    setForm({
+      name: submission.service_name,
+      summary,
+      description: keyDetails.join('\n'),
+      provider_id: null,
+      category_id: null,
+      status: 'pending',
+      approval_notes: '',
+    });
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
+    const submissionContext = selectedSubmission;
+    if (submissionContext && !canApproveServices) {
+      setError('Only moderators can publish submissions into the directory.');
+      setSaving(false);
+      return;
+    }
     try {
       const payload = {
         name: form.name,
@@ -102,11 +167,19 @@ export default function AdminServicesPage() {
         provider_id: form.provider_id,
         category_id: form.category_id,
       };
+      if (!canApproveServices && payload.status === 'approved') {
+        setError('Only moderators can approve services.');
+        setSaving(false);
+        return;
+      }
 
       if (selected) {
         await updateService(selected.id, payload);
       } else {
         await createService(payload);
+        if (submissionContext) {
+          await deleteServiceSubmissionRequest(submissionContext.id);
+        }
       }
       await loadLists();
       resetForm();
@@ -117,7 +190,29 @@ export default function AdminServicesPage() {
     }
   };
 
+  const removeSubmission = async (submission: ServiceSubmission) => {
+    if (!canApproveServices) {
+      setError('Only moderators can remove submissions from the queue.');
+      return;
+    }
+    if (!window.confirm('Remove this submission from the review queue?')) return;
+    setSaving(true);
+    try {
+      await deleteServiceSubmissionRequest(submission.id);
+      await loadLists();
+      if (selectedSubmission?.id === submission.id) resetForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove submission');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const changeStatus = async (service: Service, status: Service['status']) => {
+    if (!canApproveServices && status === 'approved') {
+      setError('Only moderators can approve services.');
+      return;
+    }
     setSaving(true);
     try {
       await setServiceStatus(service.id, status, form.approval_notes);
@@ -163,8 +258,60 @@ export default function AdminServicesPage() {
 
       {error && <p className="error" role="alert">{error}</p>}
 
+      <section className="service-submissions">
+        <h2>Pending service submissions</h2>
+        {loading ? (
+          <p>Loading…</p>
+        ) : submissions.length ? (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Organisation</th>
+                  <th>Submitted</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {submissions.map((submission) => (
+                  <tr key={submission.id} className={selectedSubmission?.id === submission.id ? 'is-active' : undefined}>
+                    <td>{submission.service_name}</td>
+                    <td>{submission.organisation_name}</td>
+                    <td>{new Date(submission.submitted_at).toLocaleString()}</td>
+                    <td>
+                      <div className="table-actions">
+                        <button type="button" onClick={() => selectSubmission(submission)} disabled={saving}>
+                          Review
+                        </button>
+                        <button type="button" onClick={() => removeSubmission(submission)} disabled={saving}>
+                          Remove
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No submissions awaiting review.</p>
+        )}
+      </section>
+
       <section className="service-form">
         <h2>{selected ? 'Edit service' : 'Create service'}</h2>
+        {selectedSubmission && (
+          <div className="alert info">
+            <p>
+              Prefilling from submission <strong>{selectedSubmission.service_name}</strong>.
+              Review the generated details and save to create a catalogue entry.
+            </p>
+            <button type="button" className="btn -ghost" onClick={() => setSelectedSubmission(null)}>
+              Clear submission context
+            </button>
+          </div>
+        )}
         <form className="stack" onSubmit={submit}>
           <label>
             <span>Service name</span>
