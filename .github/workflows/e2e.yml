@@ -7,7 +7,6 @@ on:
 jobs:
   cypress:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,24 +14,20 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 20      # keep your Node version
+          # remove: cache: 'npm' (needs a lockfile)
 
       - name: Install deps
-        run: npm ci
+        run: npm install        # <-- not `npm ci`
 
       - name: Verify Cypress
         run: npx cypress verify
 
-      # Run only your two smoke specs against PRODUCTION
       - name: Run Cypress (prod)
         env:
           CYPRESS_BASE_URL: https://comp-30022-group-30-mental-health-s.vercel.app
-        run: |
-          npx cypress run \
-            --spec "cypress/e2e/home.smoke.cy.ts,cypress/e2e/llm_search.smoke.cy.ts"
+        run: npx cypress run --spec "cypress/e2e/home.smoke.cy.ts,cypress/e2e/llm_search.smoke.cy.ts"
 
-      # Collect artifacts on failure (screenshots/videos)
       - name: Upload screenshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -48,4 +43,3 @@ jobs:
           name: cypress-videos
           path: cypress/videos
           if-no-files-found: ignore
-
