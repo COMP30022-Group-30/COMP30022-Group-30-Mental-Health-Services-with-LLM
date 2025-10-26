@@ -2,12 +2,13 @@
 
 describe('LLM search (smoke)', () => {
   it('accepts a query and renders clinics XOR helplines', () => {
-    cy.visit('/');
+    // ✅ Go straight to the live chat page (baseUrl will be production)
+    cy.visit('/chat');
 
     const inputSel = '[data-cy=search-input]';
     const submitSel = '[data-cy=search-submit]';
 
-    // Intercept your CloudFront LLM endpoint (POST)
+    // ✅ Intercept the real LLM request (your CloudFront endpoint)
     cy.intercept('POST', '**cloudfront.net/api/v1/chat/chat*').as('llm');
 
     // Type + submit (supports hooks or visible fallback)
@@ -21,8 +22,10 @@ describe('LLM search (smoke)', () => {
       if ($b.find(submitSel).length) cy.get(submitSel).click();
     });
 
-    // Wait for the LLM response to finish
-    cy.wait('@llm', { timeout: 30000 });
+    // Wait for LLM and ensure it returned 2xx
+    cy.wait('@llm', { timeout: 30000 })
+      .its('response.statusCode')
+      .should('be.within', 200, 299);
 
     // XOR: exactly one of clinics OR helplines should be present
     cy.get('body').should($b => {
@@ -41,4 +44,3 @@ describe('LLM search (smoke)', () => {
     });
   });
 });
-
