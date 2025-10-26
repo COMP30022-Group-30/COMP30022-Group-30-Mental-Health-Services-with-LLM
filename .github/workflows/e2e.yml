@@ -1,4 +1,4 @@
-name: E2E against Production
+nname: E2E against Production
 
 on:
   pull_request:
@@ -14,20 +14,26 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20      # keep your Node version
-          # remove: cache: 'npm' (needs a lockfile)
+          node-version: 20
 
-      - name: Install deps
-        run: npm install        # <-- not `npm ci`
+      # Install the app deps in the subfolder that has package.json
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend/web   # <-- this folder has package.json + package-lock.json
 
-      - name: Verify Cypress
+      - name: Verify Cypress (downloads binary if needed)
         run: npx cypress verify
 
+      # Run your two smoke specs against PRODUCTION
       - name: Run Cypress (prod)
         env:
           CYPRESS_BASE_URL: https://comp-30022-group-30-mental-health-s.vercel.app
-        run: npx cypress run --spec "cypress/e2e/home.smoke.cy.ts,cypress/e2e/llm_search.smoke.cy.ts"
+        run: |
+          npx cypress run \
+            --config-file cypress.config.ts \
+            --spec "cypress/e2e/home.smoke.cy.ts,cypress/e2e/llm_search.smoke.cy.ts"
 
+      # Artifacts on failure
       - name: Upload screenshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -39,6 +45,11 @@ jobs:
       - name: Upload videos
         if: failure()
         uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: cypress/videos
+          if-no-files-found: ignore
+v4
         with:
           name: cypress-videos
           path: cypress/videos
