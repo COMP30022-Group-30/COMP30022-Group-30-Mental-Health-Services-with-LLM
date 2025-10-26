@@ -1,14 +1,67 @@
-name: E2E against Vercel
+
+#name: E2E against Vercel
+#on:
+  #pull_request:
+  #workflow_dispatch:
+
+#jobs:
+  #cypress:
+    #runs-on: ubuntu-latest
+    #steps:
+      #- uses: actions/checkout@v4
+      #- uses: actions/setup-node@v4
+        #with: { node-version: 20 }
+      #- name: Run Cypress against deployed site
+        #run: npx cypress run --config-file cypress.config.ts
+
+
+name: E2E against Production
+
 on:
   pull_request:
+    branches: [ develop, main, master ]  # include your real base branches
   workflow_dispatch:
 
 jobs:
   cypress:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - name: Run Cypress against deployed site
-        run: npx cypress run --config-file cypress.config.ts
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Install deps in the app folder that has package.json (per your repo)
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend/web   # <-- this is where your package.json is
+
+      - name: Verify Cypress
+        run: npx cypress verify
+
+      - name: Run Cypress (prod)
+        env:
+          CYPRESS_BASE_URL: https://comp-30022-group-30-mental-health-s.vercel.app
+        run: |
+          npx cypress run \
+            --config-file cypress.config.ts \
+            --spec "cypress/e2e/home.smoke.cy.ts,cypress/e2e/llm_search.smoke.cy.ts"
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: cypress/videos
+          if-no-files-found: ignore
