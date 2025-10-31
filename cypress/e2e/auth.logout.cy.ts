@@ -1,10 +1,16 @@
-// cypress/e2e/auth.logout.cy.ts
 describe('Auth: logout', () => {
-  it('invalidates session and redirects', () => {
-    cy.window().then(w => w.localStorage.setItem('sb:token', 'e2e-token'));
-    cy.visit('/');
-    cy.findByRole('button', { name: /logout/i }).click();
-    cy.contains(/signed out|logged out/i);
-    cy.window().then(w => expect(w.localStorage.getItem('sb:token')).to.be.null);
+  it('clears session and shows sign-in CTA', () => {
+    cy.stubSupabaseAuth();
+    cy.visit('/login');
+    cy.findByLabelText(/email/i).type('user@example.com');
+    cy.findByLabelText(/password/i).type('StrongP@ss1');
+    cy.findByRole('button', { name: /sign in with email/i }).click();
+    cy.wait('@supabasePassword');
+
+    cy.location('pathname').should('eq', '/');
+    cy.findByRole('button', { name: /sign out/i }).click();
+
+    cy.wait('@supabaseLogout');
+    cy.findByRole('link', { name: /sign in/i }).should('be.visible');
   });
 });

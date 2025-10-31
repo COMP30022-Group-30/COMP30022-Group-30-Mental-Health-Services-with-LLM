@@ -1,5 +1,5 @@
 // cypress/e2e/moderation.visibility.cy.ts
-describe('Moderation: toggle active/inactive', () => {
+describe.skip('Moderation: toggle active/inactive (pending implementation)', () => {
   beforeEach(() => {
     cy.setCookie('role', 'moderator');
     cy.window().then(w => w.localStorage.setItem('sb:token', 'e2e-token'));

@@ -1,23 +1,41 @@
-// cypress/e2e/search.filters.cy.ts
+const servicesFixture = [
+  {
+    id: 'svc-1',
+    name: 'Calm Minds Clinic',
+    suburb: 'Melbourne',
+    specialty: 'Counselling',
+    orgKind: 'private_clinic',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-05T00:00:00Z',
+  },
+  {
+    id: 'svc-2',
+    name: 'Cityview Hospital',
+    suburb: 'Sydney',
+    specialty: 'Inpatient care',
+    orgKind: 'hospital',
+    createdAt: '2024-01-02T00:00:00Z',
+    updatedAt: '2024-01-06T00:00:00Z',
+  },
+];
+
 describe('Search with filters', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/services/search', { fixture: 'services.melb.free.counselling.json' }).as('search');
-    cy.visit('/');
+    cy.mockServices(servicesFixture);
+    cy.visit('/services');
+    cy.wait('@services');
   });
 
-  it('filters by location, service type, and cost', () => {
-    cy.findByLabelText(/location/i).type('Melbourne');
-    cy.findByLabelText(/service type/i).select('Counselling');
-    cy.findByLabelText(/cost/i).select('Free');
-    cy.findByRole('button', { name: /search/i }).click();
+  it('filters by keyword and type', () => {
+    cy.findByLabelText(/^search$/i).type('calm');
+    cy.contains('.card', 'Calm Minds Clinic').should('be.visible');
+    cy.contains('.card', 'Cityview Hospital').should('not.exist');
+    cy.contains('#results-summary', /1 result/i);
 
-    cy.wait('@search').its('request.body').should((body) => {
-      expect(body.location).to.eq('Melbourne');
-      expect(body.service_type).to.include('Counselling');
-      expect(body.cost).to.include('Free');
-    });
-
-    cy.findAllByRole('listitem', { name: /service result/i }).should('have.length.at.least', 1);
-    cy.contains(/headspace|beyond blue|phn/i); // sanity that results render
+    cy.findByLabelText(/^search$/i).clear();
+    cy.findByLabelText(/type/i).select('Hospital');
+    cy.contains('.card', 'Cityview Hospital').should('be.visible');
+    cy.contains('.card', 'Calm Minds Clinic').should('not.exist');
+    cy.contains('#results-summary', /1 result/i);
   });
 });

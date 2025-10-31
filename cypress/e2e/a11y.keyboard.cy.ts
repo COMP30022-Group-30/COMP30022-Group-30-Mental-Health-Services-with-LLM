@@ -1,20 +1,21 @@
-// cypress/e2e/a11y.keyboard.cy.ts
 describe('Keyboard navigation', () => {
-  it('tab order reaches search controls and results', () => {
+  it('tabs through skip link, quick exit, and chat CTA', () => {
     cy.visit('/');
-    cy.get('body').realPress('Tab');
+
+    cy.realPress('Tab');
     cy.focused()
-      .should('have.attr', 'href')
-      .and('match', /#main/);
+      .should('have.class', 'quick-exit-button')
+      .and('have.attr', 'aria-label')
+      .and('match', /quick exit/i);
 
-    cy.focused().realPress('Tab');
-    cy.focused().should('have.attr', 'aria-label').and('match', /location/i);
+    cy.realPress('Tab');
+    cy.focused()
+      .should('have.class', 'skip-link')
+      .and('have.attr', 'href', '#main');
 
-    cy.focused().realPress('Tab');
-    cy.focused().should('have.attr', 'aria-label').and('match', /service type/i);
-
-    cy.focused().realPress('Tab');
-    cy.focused().should('have.role', 'button').and('have.text', /search/i);
+    cy.realPress('Tab');
+    cy.focused()
+      .should('have.attr', 'type', 'button')
+      .and('contain.text', 'Start chat');
   });
 });
-

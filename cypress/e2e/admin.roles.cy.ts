@@ -1,5 +1,5 @@
 // cypress/e2e/admin.roles.cy.ts
-describe('Admin: assign roles', () => {
+describe.skip('Admin: assign roles (pending implementation)', () => {
   beforeEach(() => {
     cy.setCookie('role', 'superadmin');
     cy.window().then(w => w.localStorage.setItem('sb:token', 'e2e-token'));

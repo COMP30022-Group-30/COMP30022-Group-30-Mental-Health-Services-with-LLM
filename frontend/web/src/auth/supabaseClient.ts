@@ -10,6 +10,13 @@ export function getSupabaseClient(): SupabaseClient | null {
   const anonKey = VITE.VITE_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
+    if (typeof window !== 'undefined') {
+      const mock = (window as typeof window & { __SUPABASE_TEST_CLIENT__?: SupabaseClient }).__SUPABASE_TEST_CLIENT__;
+      if (mock) {
+        supabase = mock;
+        return supabase;
+      }
+    }
     return null;
   }
 

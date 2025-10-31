@@ -1,22 +1,25 @@
 // cypress/e2e/legal.consent.cy.ts
 describe('Consent before chat', () => {
-  it('requires consent to proceed', () => {
-    cy.clearLocalStorage();
+  it('requires agreeing to terms and privacy before chatting', () => {
+    cy.mockAgreements();
+    cy.stubSupabaseAuth();
     cy.visit('/chat');
-    cy.contains(/consent|scope|limitations/i);
-    cy.findByRole('button', { name: /accept/i }).click();
 
-    cy.window()
-      .its('localStorage')
-      .invoke('getItem', 'support-atlas:consent')
-      .should('match', /{"accepted":true,"timestamp":".+"}/);
+    cy.contains('h2', /terms/i).should('be.visible');
+    cy.contains('button', /accept and continue/i).as('accept').should('be.disabled');
 
-    cy.contains(/start chat|message/i);
+    cy.findByLabelText(/terms of service/i).click();
+    cy.findByLabelText(/privacy policy/i).click();
+
+    cy.get('@accept').should('not.be.disabled').click();
+    cy.get('.chat-composer').should('be.visible');
   });
 
-  it('decline sends me back to home', () => {
+  it('Go back returns to the home page', () => {
+    cy.mockAgreements();
+    cy.stubSupabaseAuth();
     cy.visit('/chat');
-    cy.findByRole('button', { name: /decline/i }).click();
-    cy.url().should('match', /\/(home|)$/);
+    cy.contains('button', /go back/i).click();
+    cy.location('pathname').should('eq', '/');
   });
 });

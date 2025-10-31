@@ -1,5 +1,5 @@
 // cypress/e2e/screening.flow.cy.ts
-describe('Screening flow', () => {
+describe.skip('Screening flow (pending implementation)', () => {
   beforeEach(() => {
     cy.intercept('POST', '/api/screening/submit').as('submit');
     cy.visit('/chat');

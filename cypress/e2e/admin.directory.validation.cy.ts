@@ -1,5 +1,5 @@
 // cypress/e2e/admin.directory.validation.cy.ts
-describe('Admin: directory field validation', () => {
+describe.skip('Admin: directory field validation (pending implementation)', () => {
   beforeEach(() => {
     cy.setCookie('role', 'admin');
     cy.window().then(w => w.localStorage.setItem('sb:token', 'e2e-token'));

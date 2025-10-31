@@ -1,12 +1,12 @@
-// cypress/e2e/network.offline.cy.ts
 describe('Offline / slow network UX', () => {
   it('shows offline banner and preserves input', () => {
-    cy.visit('/');
-    cy.findByRole('textbox').type('anxiety support');
-    cy.intercept('POST', '/api/services/search', { forceNetworkError: true }).as('search');
-    cy.findByRole('button', { name: /search/i }).click();
-    cy.wait('@search');
-    cy.contains(/offline|connection|retry/i);
-    cy.findByRole('textbox').should('have.value', 'anxiety support');
+    cy.intercept('GET', '**/mock/services.json', (req) => req.reply({ forceNetworkError: true })).as('services');
+
+    cy.visit('/services');
+    cy.wait('@services');
+
+    cy.findByLabelText(/^search$/i).type('anxiety support');
+    cy.findByRole('alert').should('contain.text', 'Failed to load services');
+    cy.findByLabelText(/^search$/i).should('have.value', 'anxiety support');
   });
 });

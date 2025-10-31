@@ -6,8 +6,13 @@ describe('Legal & Crisis static pages', () => {
     cy.findByRole('link', { name: /terms/i }).should('have.attr', 'href').and('match', /terms/);
   });
 
-  it('crisis page mentions 000 and Lifeline', () => {
-    cy.visit('/crisis');
-    cy.contains(/000|lifeline|13 11 14/i);
+  it('crisis section on the home page mentions 000 and Lifeline', () => {
+    cy.visit('/');
+    cy.findByRole('link', { name: /see crisis contacts/i }).should('have.attr', 'href', '/#help-crisis');
+    cy.get('#help-crisis').scrollIntoView().within(() => {
+      cy.contains(/000/);
+      cy.contains(/13 11 14/);
+      cy.contains(/lifeline/i);
+    });
   });
 });

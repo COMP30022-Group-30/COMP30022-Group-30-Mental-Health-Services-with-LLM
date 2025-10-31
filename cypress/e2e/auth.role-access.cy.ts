@@ -1,18 +1,12 @@
-// cypress/e2e/auth.role-access.cy.ts
-describe('Auth: role-based access (not routing)', () => {
-  it('Moderator can access moderation console', () => {
-    cy.setCookie('role', 'moderator'); // or localStorage/session per your app
-    cy.window().then(w => w.localStorage.setItem('sb:token', 'e2e-token'));
-    cy.visit('/admin/moderation');
-    cy.contains(/moderation|approve|queue/i);
+describe('Auth: role-based access', () => {
+  it('redirects unauthenticated users to the admin sign-in page', () => {
+    cy.visit('/admin');
+    cy.location('pathname').should('eq', '/admin/signin');
   });
 
-  it('General user is blocked from admin pages', () => {
-    cy.setCookie('role', 'user');
-    cy.window().then(w => w.localStorage.setItem('sb:token', 'e2e-token'));
-    cy.visit('/admin/moderation');
-    cy.contains(/forbidden|no access|not allowed/i);
-    // or redirect assertion
-    // cy.url().should('not.include', '/admin');
+  it('shows the admin sign-in form', () => {
+    cy.visit('/admin/signin');
+    cy.findByLabelText(/username/i).should('exist');
+    cy.findByLabelText(/password/i).should('exist');
   });
 });

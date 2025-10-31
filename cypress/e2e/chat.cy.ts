@@ -1,17 +1,25 @@
 describe('Chat assistant', () => {
   it('sends a message and shows the response from the API', () => {
-    cy.intercept('POST', '**/api/v1/chat/chat', {
+    const replyText = 'This is a stubbed reply with available services.';
+
+    cy.mockAgreements();
+    cy.intercept('POST', '**/api/v1/chat/chat**', {
       statusCode: 200,
       body: {
-        response: 'This is a stubbed reply with available services.',
+        response: replyText,
         session_id: 'session-123',
       },
     }).as('chatRequest');
 
     cy.visit('/chat');
 
-    cy.get('#chat-input').type('I need counselling support');
-    cy.contains('button', /^send$/i).click();
+    cy.contains('button', /accept and continue/i).as('accept').should('be.disabled');
+    cy.findByLabelText(/terms of service/i).click();
+    cy.findByLabelText(/privacy policy/i).click();
+    cy.get('@accept').click();
+
+    cy.get('#chat-composer-input').type('I need counselling support');
+    cy.findByRole('button', { name: /send/i }).click();
 
     cy.get('.msg.user .msg-text').contains('I need counselling support').should('be.visible');
 
@@ -20,7 +28,7 @@ describe('Chat assistant', () => {
     });
 
     cy.get('.msg.assistant .msg-text')
-      .contains('This is a stubbed reply with available services.')
+      .contains(replyText)
       .should('be.visible');
   });
 });

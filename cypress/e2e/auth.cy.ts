@@ -1,13 +1,16 @@
-// cypress/e2e/auth.cy.ts
 describe('Auth flow (stubbed)', () => {
-  it('logs in and preserves session across reload', () => {
+  it('signs in with email/password and persists session across reload', () => {
+    cy.stubSupabaseAuth();
     cy.visit('/login');
-    cy.findByLabelText(/email/i).type('user@example.com');
-    cy.findByRole('button', { name: /magic link/i }).click();
 
-    // simulate Supabase callback storage
-    cy.window().then((w) => w.localStorage.setItem('sb:token', 'test-token'));
-    cy.visit('/');
-    cy.contains(/logout|my account/i);
+    cy.findByLabelText(/email/i).type('user@example.com');
+    cy.findByLabelText(/password/i).type('StrongP@ss1');
+    cy.findByRole('button', { name: /sign in with email/i }).click();
+
+    cy.location('pathname').should('eq', '/');
+    cy.findByRole('button', { name: /sign out/i }).should('be.visible');
+
+    cy.reload();
+    cy.findByRole('button', { name: /sign out/i }).should('be.visible');
   });
 });

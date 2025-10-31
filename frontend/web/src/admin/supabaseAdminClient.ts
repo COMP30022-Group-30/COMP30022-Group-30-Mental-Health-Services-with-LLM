@@ -10,6 +10,13 @@ export function getSupabaseAdminClient(): SupabaseClient | null {
   const serviceKey = VITE.VITE_SUPABASE_SERVICE_KEY;
 
   if (!url || !serviceKey) {
+    if (typeof window !== 'undefined') {
+      const mock = (window as typeof window & { __SUPABASE_TEST_ADMIN_CLIENT__?: SupabaseClient }).__SUPABASE_TEST_ADMIN_CLIENT__;
+      if (mock) {
+        adminClient = mock;
+        return adminClient;
+      }
+    }
     return null;
   }
 
